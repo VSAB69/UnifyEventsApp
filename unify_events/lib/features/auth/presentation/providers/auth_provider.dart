@@ -6,19 +6,20 @@ import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
+import '../../domain/models/user_model.dart';
 
 /// STATE
 class AuthState {
   final bool isLoading;
   final bool isAuthenticated;
   final String? error;
-  final String? username;
+  final UserModel? user;
 
   AuthState({
     required this.isLoading,
     required this.isAuthenticated,
     this.error,
-    this.username,
+    this.user,
   });
 
   factory AuthState.initial() =>
@@ -28,14 +29,14 @@ class AuthState {
     bool? isLoading,
     bool? isAuthenticated,
     String? error,
-    String? username,
+    UserModel? user,
     bool clearError = false,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       error: clearError ? null : (error ?? this.error),
-      username: username ?? this.username,
+      user: user ?? this.user,
     );
   }
 }
@@ -67,14 +68,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> checkAuth() async {
     try {
-      final username = await repo.isLoggedIn().timeout(
+      final user = await repo.isLoggedIn().timeout(
         const Duration(seconds: 12),
       );
 
       state = state.copyWith(
         isLoading: false,
-        isAuthenticated: username != null,
-        username: username,
+        isAuthenticated: user != null,
+        user: user,
       );
     } catch (_) {
       state = state.copyWith(isLoading: false, isAuthenticated: false);
@@ -85,12 +86,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await repo.login(username, password).timeout(const Duration(seconds: 20));
+      final user = await repo.login(username, password).timeout(const Duration(seconds: 20));
 
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: true,
-        username: username,
+        user: user,
       );
     } on AppException catch (e) {
       state = state.copyWith(

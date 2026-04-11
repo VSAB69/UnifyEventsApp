@@ -26,10 +26,30 @@ class AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    // If unauthorized → try refresh
-    if (err.response?.statusCode == 401 && !_isRefreshing) {
-      _isRefreshing = true;
+    if (err.response?.statusCode == 401) {
+      if (_isRefreshing) {
+        // Wait until the other request completes the refresh
+        await Future.doWhile(() async {
+          await Future.delayed(const Duration(milliseconds: 100));
+          return _isRefreshing;
+        });
 
+        final newToken = await storage.getAccessToken();
+        if (newToken != null) {
+          final options = err.requestOptions;
+          options.headers['Authorization'] = 'Bearer $newToken';
+          try {
+            final retryResponse = await dio.fetch(options);
+            return handler.resolve(retryResponse);
+          } catch (e) {
+            return handler.next(err);
+          }
+        } else {
+          return handler.next(err);
+        }
+      }
+
+      _isRefreshing = true;
       final refreshToken = await storage.getRefreshToken();
 
       if (refreshToken == null) {
@@ -38,21 +58,17 @@ class AuthInterceptor extends Interceptor {
       }
 
       try {
-        final response = await dio.post(
+        final refreshDio = Dio(BaseOptions(baseUrl: ApiConstants.baseUrl));
+        final response = await refreshDio.post(
           ApiConstants.refresh,
           data: {"refresh": refreshToken},
         );
 
         final newAccess = response.data["access"];
-
-        // Save new access token
         await storage.saveTokens(newAccess, refreshToken);
 
-        // Retry original request
         final options = err.requestOptions;
-
         options.headers['Authorization'] = 'Bearer $newAccess';
-
         final retryResponse = await dio.fetch(options);
 
         _isRefreshing = false;

@@ -1,10 +1,11 @@
-import 'dart:async'; // ✅ ADD THIS
+import 'dart:async';
 
 import 'package:dio/dio.dart';
 
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../datasources/auth_remote_datasource.dart';
+import '../../domain/models/user_model.dart';
 
 class AuthRepositoryImpl {
   final AuthRemoteDataSource remote;
@@ -12,7 +13,7 @@ class AuthRepositoryImpl {
 
   AuthRepositoryImpl(this.remote, this.storage);
 
-  Future<void> login(String username, String password) async {
+  Future<UserModel> login(String username, String password) async {
     try {
       final response = await remote
           .login(username: username, password: password)
@@ -20,6 +21,12 @@ class AuthRepositoryImpl {
 
       await storage.saveTokens(response.access, response.refresh);
       await storage.saveUsername(username);
+
+      final userResponse = await remote.dio
+          .get("/api/mobile-auth/me/")
+          .timeout(const Duration(seconds: 10));
+
+      return UserModel.fromJson(userResponse.data);
     } on DioException catch (e) {
       final message = e.response?.data["error"] ?? "Login failed. Try again.";
       throw AppException(message);
@@ -45,17 +52,17 @@ class AuthRepositoryImpl {
     await storage.clearTokens();
   }
 
-  Future<String?> isLoggedIn() async {
+  Future<UserModel?> isLoggedIn() async {
     final token = await storage.getAccessToken();
 
     if (token == null) return null;
 
     try {
-      await remote.dio
+      final response = await remote.dio
           .get("/api/mobile-auth/me/")
           .timeout(const Duration(seconds: 10));
 
-      return await storage.getUsername();
+      return UserModel.fromJson(response.data);
     } catch (e) {
       return null;
     }
