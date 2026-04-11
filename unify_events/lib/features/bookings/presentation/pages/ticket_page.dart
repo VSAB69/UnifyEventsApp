@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../events/presentation/providers/event_details_provider.dart';
@@ -29,58 +30,28 @@ class TicketPage extends ConsumerStatefulWidget {
   ConsumerState<TicketPage> createState() => _TicketPageState();
 }
 
-class _TicketPageState extends ConsumerState<TicketPage> with TickerProviderStateMixin {
-  final GlobalKey _ticketKey = GlobalKey();
-  
-  late AnimationController _entryController;
-  late AnimationController _stampController;
+class _TicketPageState extends ConsumerState<TicketPage> with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _particlesController;
-  late AnimationController _tiltController;
-
-  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
-    _entryController = AnimationController(vsync: this, duration: const Duration(seconds: 1))..forward();
-    _stampController = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    WidgetsBinding.instance.addObserver(this);
     _particlesController = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
-    _tiltController = AnimationController(vsync: this, duration: const Duration(milliseconds: 2000))..repeat(reverse: true);
+  }
 
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) _stampController.forward();
-    });
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(bookedEventProvider(widget.bookedEventId));
+    }
   }
 
   @override
   void dispose() {
-    _entryController.dispose();
-    _stampController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     _particlesController.dispose();
-    _tiltController.dispose();
     super.dispose();
-  }
-
-  Future<void> _shareTicket() async {
-    setState(() => _isSaving = true);
-    try {
-      final boundary = _ticketKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final buffer = byteData!.buffer.asUint8List();
-
-      final tempDir = await getTemporaryDirectory();
-      final file = await File('${tempDir.path}/unify_ticket_${widget.bookedEventId}.png').create();
-      await file.writeAsBytes(buffer);
-
-      await Share.shareXFiles([XFile(file.path)], text: 'My Unify Event Ticket 🎉');
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to share ticket.')));
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
-    }
   }
 
   @override
@@ -106,7 +77,7 @@ class _TicketPageState extends ConsumerState<TicketPage> with TickerProviderStat
               return Stack(
                 children: List.generate(4, (index) {
                   final t = _particlesController.value * 2 * 3.14159;
-                  final dx = 100 * (index % 2 == 0 ? 1 : -1) * (1 + 0.5 * sin(t + index * 2)); // pseudo-random dummy logic
+                  final dx = 100 * (index % 2 == 0 ? 1 : -1) * (1 + 0.5 * sin(t + index * 2));
                   return Positioned(
                     top: MediaQuery.of(context).size.height * (0.2 + index * 0.2) + 50 * (t + index).sign,
                     left: MediaQuery.of(context).size.width * (0.2 + (index % 2) * 0.5) + dx,
@@ -130,229 +101,26 @@ class _TicketPageState extends ConsumerState<TicketPage> with TickerProviderStat
           SafeArea(
             child: bookedAsync.when(
               data: (bookedEvent) {
-                final eventIdRaw = bookedEvent['event_id'] ?? bookedEvent['event'] ?? '';
-                final eventId = eventIdRaw is Map ? eventIdRaw['id'].toString() : eventIdRaw.toString();
+                final participants = (bookedEvent['participants'] as List?) ?? [];
+                if (participants.isEmpty) {
+                  return const Center(child: Text("No passes found.", style: TextStyle(color: Colors.white)));
+                }
 
-                final eventDetailsAsync = ref.watch(eventDetailsDataProvider(eventId));
-                
-                return Center(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20).copyWith(bottom: 120),
-                    child: AnimatedBuilder(
-                      animation: Listenable.merge([_entryController, _tiltController]),
-                      builder: (context, child) {
-                        final entryScale = CurvedAnimation(parent: _entryController, curve: Curves.easeOutBack).value * 0.2 + 0.8;
-                        final entryOpacity = CurvedAnimation(parent: _entryController, curve: Curves.easeIn).value;
-                        
-                        // 3D Tilt hovering effect
-                        final tiltY = 0.05 * (_tiltController.value - 0.5);
-
-                        return Opacity(
-                          opacity: entryOpacity,
-                          child: Transform(
-                            transform: Matrix4.identity()
-                              ..setEntry(3, 2, 0.001)
-                              ..scale(entryScale)
-                              ..rotateX(tiltY)
-                              ..rotateY(-tiltY),
-                            alignment: Alignment.center,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          RepaintBoundary(
-                            key: _ticketKey,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF13131D).withOpacity(0.85),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.5), width: 1.5),
-                                boxShadow: [
-                                  BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.2), blurRadius: 40, spreadRadius: -5),
-                                  BoxShadow(color: const Color(0xFFE81CFF).withOpacity(0.1), blurRadius: 40, offset: const Offset(0, 20)),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(24),
-                                child: Stack(
-                                  children: [
-                                    // Ticket Gradient Overlay
-                                    Positioned.fill(
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [Colors.white.withOpacity(0.05), Colors.transparent, const Color(0xFF7C3AED).withOpacity(0.05)],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          )
-                                        ),
-                                      ),
-                                    ),
-
-                                    Padding(
-                                      padding: const EdgeInsets.all(28),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                                        children: [
-                                          // HEADER
-                                          const Row(
-                                            mainAxisAlignment: MainAxisAlignment.center,
-                                            children: [
-                                              Icon(Icons.stars, color: Color(0xFFE81CFF), size: 24),
-                                              SizedBox(width: 8),
-                                              Text('EVENT PASS CONFIRMED', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2)),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 24),
-                                          const Divider(color: Colors.white24, height: 1, thickness: 1),
-                                          const SizedBox(height: 24),
-                                          
-                                          // EVENT DETAILS
-                                          Text(bookedEvent['event_name']?.toString().toUpperCase() ?? 'EVENT', 
-                                            textAlign: TextAlign.center, 
-                                            style: const TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w900, height: 1.2)),
-                                          
-                                          const SizedBox(height: 24),
-                                          Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Expanded(child: _buildSlotInfoUI(bookedEvent['slot_info'])),
-                                              Expanded(child: _buildInfoItem(Icons.group, 'Team Size', '${bookedEvent['participants_count'] ?? 1}')),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 16),
-
-                                          eventDetailsAsync.when(
-                                            data: (details) => Row(
-                                              children: [
-                                                Expanded(child: const SizedBox()), // Empty spacing or removed
-                                                Expanded(child: _buildInfoItem(Icons.location_on, 'Venue', details['venue']?.toString() ?? 'TBA')),
-                                              ],
-                                            ),
-                                            loading: () => const Center(child: CircularProgressIndicator(color: Colors.white24)),
-                                            error: (_, __) => _buildInfoItem(Icons.location_off, 'Venue', 'Failed to load details'),
-                                          ),
-
-                                          const SizedBox(height: 32),
-                                          
-                                          // PARTICIPANTS
-                                          const Text('ATTENDEES', style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
-                                          const SizedBox(height: 12),
-                                          ...((bookedEvent['participants'] as List?) ?? []).asMap().entries.map((entry) {
-                                            final i = entry.key;
-                                            final p = entry.value;
-                                            
-                                            return AnimatedBuilder(
-                                              animation: _entryController,
-                                              builder: (context, child) {
-                                                // Stagger calculation
-                                                final delay = 0.4 + (i * 0.1);
-                                                final progress = ((_entryController.value - delay) / 0.4).clamp(0.0, 1.0);
-                                                final slideY = 20 * (1 - progress);
-                                                return Opacity(
-                                                  opacity: progress,
-                                                  child: Transform.translate(offset: Offset(0, slideY), child: child),
-                                                );
-                                              },
-                                              child: Container(
-                                                margin: const EdgeInsets.only(bottom: 8),
-                                                padding: const EdgeInsets.all(12),
-                                                decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
-                                                child: Row(
-                                                  children: [
-                                                    const Icon(Icons.person, color: Color(0xFF38BDF8), size: 18),
-                                                    const SizedBox(width: 12),
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                                        children: [
-                                                          Text(p['name'] ?? 'Attendee', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                                                          if (p['email'] != null) Text(p['email'], style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            );
-                                          }),
-
-                                          const SizedBox(height: 24),
-                                          const Divider(color: Colors.white24, height: 1, thickness: 1), 
-                                          const SizedBox(height: 24),
-
-                                          // TOTAL
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              const Text('TOTAL PAID:', style: TextStyle(color: Colors.white54, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                                              Text('₹${bookedEvent['line_total'] ?? 0}', style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 24, fontWeight: FontWeight.bold)),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-
-                                    // STAMP OVERLAY
-                                    Positioned(
-                                      top: 60,
-                                      right: 10,
-                                      child: ScaleTransition(
-                                        scale: CurvedAnimation(parent: _stampController, curve: Curves.elasticOut),
-                                        child: FadeTransition(
-                                          opacity: CurvedAnimation(parent: _stampController, curve: Curves.easeIn),
-                                          child: RotationTransition(
-                                            turns: Tween(begin: 0.1, end: -0.05).animate(CurvedAnimation(parent: _stampController, curve: Curves.easeOutBack)),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(color: Colors.greenAccent, width: 3),
-                                                borderRadius: BorderRadius.circular(8),
-                                                color: Colors.black.withOpacity(0.5),
-                                              ),
-                                              child: const Text('PAID', style: TextStyle(color: Colors.greenAccent, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: 4)),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 40),
-                          
-                          // DOWNLOAD BUTTON
-                          FadeTransition(
-                            opacity: CurvedAnimation(parent: _entryController, curve: const Interval(0.8, 1.0)),
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFE81CFF),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  elevation: 10,
-                                  shadowColor: const Color(0xFFE81CFF).withOpacity(0.5),
-                                ),
-                                onPressed: _isSaving ? null : _shareTicket,
-                                icon: _isSaving 
-                                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                   : const Icon(Icons.download_rounded, color: Colors.white),
-                                label: Text(_isSaving ? 'Processing...' : 'Export & Share Pass', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                              ),
-                            ),
-                          )
-                        ],
+                return PageView.builder(
+                  itemCount: participants.length,
+                  physics: const BouncingScrollPhysics(),
+                  controller: PageController(viewportFraction: 0.85),
+                  itemBuilder: (context, index) {
+                    final p = participants[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 20),
+                      child: ParticipantTicketCard(
+                        participant: p,
+                        bookedEvent: bookedEvent,
+                        bookedEventId: widget.bookedEventId,
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
@@ -374,6 +142,262 @@ class _TicketPageState extends ConsumerState<TicketPage> with TickerProviderStat
       ),
     );
   }
+}
+
+class ParticipantTicketCard extends ConsumerStatefulWidget {
+  final Map<String, dynamic> participant;
+  final Map<String, dynamic> bookedEvent;
+  final int bookedEventId;
+
+  const ParticipantTicketCard({
+    super.key,
+    required this.participant,
+    required this.bookedEvent,
+    required this.bookedEventId,
+  });
+
+  @override
+  ConsumerState<ParticipantTicketCard> createState() => _ParticipantTicketCardState();
+}
+
+class _ParticipantTicketCardState extends ConsumerState<ParticipantTicketCard> with TickerProviderStateMixin {
+  final GlobalKey _ticketKey = GlobalKey();
+  late AnimationController _entryController;
+  late AnimationController _tiltController;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800))..forward();
+    _tiltController = AnimationController(vsync: this, duration: const Duration(milliseconds: 2000))..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _tiltController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _shareTicket() async {
+    setState(() => _isSaving = true);
+    try {
+      final boundary = _ticketKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final buffer = byteData!.buffer.asUint8List();
+
+      final tempDir = await getTemporaryDirectory();
+      final file = await File('${tempDir.path}/unify_ticket_${widget.bookedEventId}_${widget.participant['id']}.png').create();
+      await file.writeAsBytes(buffer);
+
+      await Share.shareXFiles([XFile(file.path)], text: 'My Unify Event Pass 🎉');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to share ticket.')));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final eventName = widget.bookedEvent['event_name']?.toString().toUpperCase() ?? 'EVENT';
+    final p = widget.participant;
+    final bool arrived = p['arrived'] == true || p['qr_used'] == true;
+    final qrToken = p['qr_token'] ?? '';
+
+    // fetch event details for venue
+    final eventIdRaw = widget.bookedEvent['event_id'] ?? widget.bookedEvent['event'] ?? '';
+    final eventId = eventIdRaw is Map ? eventIdRaw['id'].toString() : eventIdRaw.toString();
+    final eventDetailsAsync = ref.watch(eventDetailsDataProvider(eventId));
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([_entryController, _tiltController]),
+      builder: (context, child) {
+        final entryScale = CurvedAnimation(parent: _entryController, curve: Curves.easeOutBack).value * 0.2 + 0.8;
+        final entryOpacity = CurvedAnimation(parent: _entryController, curve: Curves.easeIn).value;
+        final tiltY = 0.03 * (_tiltController.value - 0.5);
+
+        return Opacity(
+          opacity: entryOpacity,
+          child: Transform(
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.001)
+              ..scale(entryScale)
+              ..rotateX(tiltY)
+              ..rotateY(-tiltY),
+            alignment: Alignment.center,
+            child: child,
+          ),
+        );
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: RepaintBoundary(
+              key: _ticketKey,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF13131D).withOpacity(0.9),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.6), width: 1.5),
+                  boxShadow: [
+                    BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.2), blurRadius: 40, spreadRadius: -5),
+                    BoxShadow(color: const Color(0xFFE81CFF).withOpacity(0.1), blurRadius: 40, offset: const Offset(0, 20)),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Stack(
+                    children: [
+                      // Background gradient
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Colors.white.withOpacity(0.05), Colors.transparent, const Color(0xFF7C3AED).withOpacity(0.05)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          ),
+                        ),
+                      ),
+                      
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                        child: Column(
+                          children: [
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.stars, color: Color(0xFFE81CFF), size: 24),
+                                SizedBox(width: 8),
+                                Text('EVENT PASS CONFIRMED', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Divider(color: Colors.white24, height: 1, thickness: 1),
+                            const SizedBox(height: 16),
+                            
+                            Text(eventName,
+                              textAlign: TextAlign.center, 
+                              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, height: 1.2),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 24),
+
+                            // QR DISPLAY
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: arrived ? Colors.greenAccent.withOpacity(0.2) : const Color(0xFF38BDF8).withOpacity(0.3),
+                                      blurRadius: 20,
+                                      spreadRadius: 2,
+                                    )
+                                  ]
+                                ),
+                                child: arrived
+                                    ? const SizedBox(
+                                        height: 160,
+                                        width: 160,
+                                        child: Center(
+                                          child: Text(
+                                            "Checked In",
+                                            style: TextStyle(
+                                              color: Colors.green,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    : QrImageView(
+                                        data: """{"type": "event_checkin", "token": "$qrToken", "participant_id": ${p['id']}}""",
+                                        version: QrVersions.auto,
+                                        size: 160.0,
+                                        gapless: false,
+                                      ),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 24),
+                            
+                            // User info
+                            Text(p['name']?.toString() ?? 'Attendee', 
+                                style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 20, fontWeight: FontWeight.bold)),
+                            if (p['email'] != null) ...[
+                              const SizedBox(height: 4),
+                              Text(p['email'].toString(), style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                            ],
+                            if (p['phone'] != null) ...[
+                              const SizedBox(height: 4),
+                              Text(p['phone'].toString(), style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                            ],
+
+                            const Spacer(),
+                            
+                            // Event Details bottom area
+                            const Divider(color: Colors.white24, height: 1, thickness: 1),
+                            const SizedBox(height: 16),
+                            
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildSlotInfoUI(widget.bookedEvent['slot_info'])),
+                                Expanded(
+                                  child: eventDetailsAsync.when(
+                                    data: (details) => _buildInfoItem(Icons.location_on, 'Venue', details['venue']?.toString() ?? 'TBA'),
+                                    loading: () => const Align(alignment: Alignment.centerLeft, child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white24))),
+                                    error: (_, __) => _buildInfoItem(Icons.location_off, 'Venue', 'Failed to load'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // DOWNLOAD BUTTON
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE81CFF),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 10,
+                shadowColor: const Color(0xFFE81CFF).withOpacity(0.5),
+              ),
+              onPressed: _isSaving ? null : _shareTicket,
+              icon: _isSaving 
+                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                 : const Icon(Icons.download_rounded, color: Colors.white),
+              label: Text(_isSaving ? 'Processing...' : 'Export Pass', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          )
+        ],
+      ),
+    );
+  }
 
   Widget _buildInfoItem(IconData icon, String label, String value) {
     return Column(
@@ -387,7 +411,7 @@ class _TicketPageState extends ConsumerState<TicketPage> with TickerProviderStat
           ],
         ),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
       ],
     );
   }
@@ -408,8 +432,8 @@ class _TicketPageState extends ConsumerState<TicketPage> with TickerProviderStat
             ],
           ),
           const SizedBox(height: 4),
-          Text(slotInfo.date!, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
+          Text(slotInfo.date!, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
         ],
         if (slotInfo.startTime != null && slotInfo.endTime != null) ...[
           Row(
@@ -421,8 +445,7 @@ class _TicketPageState extends ConsumerState<TicketPage> with TickerProviderStat
           ),
           const SizedBox(height: 4),
           Text('${formatTimeHHMM(slotInfo.startTime)} - ${formatTimeHHMM(slotInfo.endTime)}', 
-            style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 12),
+            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
         ],
       ],
     );

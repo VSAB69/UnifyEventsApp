@@ -18,6 +18,12 @@ class _MainLayoutState extends ConsumerState<MainLayout> with TickerProviderStat
   void _onTap(int index, List<String> availableRoutes) {
     // Map visual index to route
     final route = availableRoutes[index];
+    
+    if (route == 'scan') {
+      context.push('/scan');
+      return;
+    }
+    
     int shellIndex = 0;
     
     // Find the corresponding shell index for the route
@@ -45,6 +51,8 @@ class _MainLayoutState extends ConsumerState<MainLayout> with TickerProviderStat
       {'route': 'events', 'icon': Icons.explore_outlined, 'activeIcon': Icons.explore, 'label': 'Events'},
       {'route': 'cart', 'icon': Icons.shopping_cart_outlined, 'activeIcon': Icons.shopping_cart, 'label': 'Cart'},
       {'route': 'bookings', 'icon': Icons.calendar_today_outlined, 'activeIcon': Icons.calendar_today, 'label': 'Bookings'},
+      if (isManager)
+        {'route': 'scan', 'icon': Icons.qr_code_scanner_outlined, 'activeIcon': Icons.qr_code_scanner, 'label': 'Scan'},
       if (isManager)
         {'route': 'manage', 'icon': Icons.dashboard_customize_outlined, 'activeIcon': Icons.dashboard_customize, 'label': 'Manage'},
       {'route': 'profile', 'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': 'Profile'},

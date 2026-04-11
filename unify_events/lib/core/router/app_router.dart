@@ -17,6 +17,7 @@ import '../../features/events/presentation/pages/event_detail_page.dart';
 import '../../features/cart/presentation/pages/checkout_page.dart';
 import '../../features/cart/presentation/pages/payment_page.dart';
 import '../../features/cart/presentation/pages/booking_success_page.dart';
+import '../../features/scan/presentation/scan_screen.dart';
 import '../../shared/layout/main_layout.dart';
 import 'router_notifier.dart';
 
@@ -95,6 +96,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final totalAmount = state.extra as num? ?? 0;
           return PaymentPage(totalAmount: totalAmount);
         },
+      ),
+      GoRoute(
+        path: '/scan',
+        builder: (context, state) => const ScanScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
