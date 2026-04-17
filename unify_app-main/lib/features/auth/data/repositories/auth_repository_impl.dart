@@ -27,7 +27,7 @@ class AuthRepositoryImpl {
           .timeout(const Duration(seconds: 10));
 
       return UserModel.fromJson(userResponse.data);
-    } on DioException catch (e) {
+    } on DioError catch (e) {
       final message = e.response?.data["error"] ?? "Login failed. Try again.";
       throw AppException(message);
     } on TimeoutException {

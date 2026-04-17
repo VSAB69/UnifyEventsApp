@@ -13,7 +13,7 @@ class EventsPage extends StatelessWidget {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-             SliverToBoxAdapter(
+            SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 30, 20, 20),
                 child: Column(
@@ -44,26 +44,34 @@ class EventsPage extends StatelessWidget {
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20).copyWith(bottom: 120),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                ).copyWith(bottom: 120),
                 child: Column(
                   children: [
                     _buildNeonDomainCard(
-                      context, 
-                      'PHASE SHIFT', 'TECH SYMPOSIUM', 
-                      [const Color(0xFF00E5FF), const Color(0xFF0055FF)], 
-                      Icons.bolt, '/events-list?type=phaseshift'
+                      context,
+                      'PHASE SHIFT',
+                      'TECH SYMPOSIUM',
+                      [const Color(0xFF00E5FF), const Color(0xFF0055FF)],
+                      Icons.bolt,
+                      '/events-list?type=phaseshift',
                     ),
                     _buildNeonDomainCard(
-                      context, 
-                      'UTSAV', 'CULTURAL FEST', 
-                      [const Color(0xFFFF1C7C), const Color(0xFFFF8A00)], 
-                      Icons.auto_awesome, '/events-list?type=utsav'
+                      context,
+                      'UTSAV',
+                      'CULTURAL FEST',
+                      [const Color(0xFFFF1C7C), const Color(0xFFFF8A00)],
+                      Icons.auto_awesome,
+                      '/events-list?type=utsav',
                     ),
                     _buildNeonDomainCard(
-                      context, 
-                      'CLUB EVENTS', 'STUDENT GUILDS', 
-                      [const Color(0xFF39FF14), const Color(0xFF00AA00)], 
-                      Icons.group_work, '/events-list?type=regular'
+                      context,
+                      'CLUB EVENTS',
+                      'STUDENT GUILDS',
+                      [const Color(0xFF39FF14), const Color(0xFF00AA00)],
+                      Icons.group_work,
+                      '/events-list?type=regular',
                     ),
                   ],
                 ),
@@ -76,12 +84,12 @@ class EventsPage extends StatelessWidget {
   }
 
   Widget _buildNeonDomainCard(
-    BuildContext context, 
-    String title, 
-    String subtitle, 
-    List<Color> gradientColors, 
-    IconData icon, 
-    String route
+    BuildContext context,
+    String title,
+    String subtitle,
+    List<Color> gradientColors,
+    IconData icon,
+    String route,
   ) {
     return GestureDetector(
       onTap: () => context.push(route),
@@ -99,7 +107,7 @@ class EventsPage extends StatelessWidget {
               color: gradientColors.first.withOpacity(0.08),
               blurRadius: 30,
               spreadRadius: -5,
-            )
+            ),
           ],
         ),
         child: Row(
@@ -121,14 +129,14 @@ class EventsPage extends StatelessWidget {
                     color: gradientColors.first.withOpacity(0.5),
                     blurRadius: 20,
                     offset: const Offset(0, 4),
-                  )
+                  ),
                 ],
               ),
               child: Icon(icon, color: Colors.white, size: 40),
             ),
-            
+
             const SizedBox(width: 24),
-            
+
             // Text Details
             Expanded(
               child: Column(
@@ -165,7 +173,11 @@ class EventsPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Icon(Icons.arrow_forward, size: 16, color: gradientColors.first),
+                      Icon(
+                        Icons.arrow_forward,
+                        size: 16,
+                        color: gradientColors.first,
+                      ),
                     ],
                   ),
                 ],

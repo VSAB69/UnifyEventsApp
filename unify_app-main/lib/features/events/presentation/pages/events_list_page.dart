@@ -55,11 +55,18 @@ class EventsListPage extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.event_busy, color: Colors.white24, size: 64),
+                        const Icon(
+                          Icons.event_busy,
+                          color: Colors.white24,
+                          size: 64,
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'No events found for $_title',
-                          style: const TextStyle(color: Colors.white54, fontSize: 16),
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
@@ -68,7 +75,10 @@ class EventsListPage extends ConsumerWidget {
               );
             }
             return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10).copyWith(bottom: 120),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 10,
+              ).copyWith(bottom: 120),
               physics: const AlwaysScrollableScrollPhysics(),
               itemCount: events.length,
               itemBuilder: (context, index) {
@@ -76,7 +86,9 @@ class EventsListPage extends ConsumerWidget {
               },
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
+          ),
           error: (err, stack) => SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: SizedBox(
@@ -87,7 +99,11 @@ class EventsListPage extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.redAccent,
+                        size: 48,
+                      ),
                       const SizedBox(height: 16),
                       Text(
                         err.toString(),
@@ -96,12 +112,13 @@ class EventsListPage extends ConsumerWidget {
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () => ref.invalidate(filteredEventsProvider(type)),
+                        onPressed: () =>
+                            ref.invalidate(filteredEventsProvider(type)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF7C3AED),
                         ),
                         child: const Text("Retry"),
-                      )
+                      ),
                     ],
                   ),
                 ),
@@ -125,7 +142,7 @@ class EventsListPage extends ConsumerWidget {
             color: const Color(0xFF7C3AED).withOpacity(0.15),
             blurRadius: 15,
             spreadRadius: 2,
-          )
+          ),
         ],
       ),
       child: ClipRRect(
@@ -145,24 +162,27 @@ class EventsListPage extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                       Text(
-                         event.title,
-                         style: const TextStyle(
-                           color: Colors.white,
-                           fontSize: 18,
-                           fontWeight: FontWeight.bold,
-                         ),
-                       ),
-                       const SizedBox(height: 6),
-                       Text(
-                         event.description.length > 80
-                             ? '${event.description.substring(0, 80)}...'
-                             : event.description,
-                         style: const TextStyle(color: Colors.white60, fontSize: 14),
-                       ),
-                     ],
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        event.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        event.description.length > 80
+                            ? '${event.description.substring(0, 80)}...'
+                            : event.description,
+                        style: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -200,14 +220,26 @@ class EventsListPage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(height: 20, width: 200, color: const Color(0xFF0A0A0F)),
+                Container(
+                  height: 20,
+                  width: 200,
+                  color: const Color(0xFF0A0A0F),
+                ),
                 const SizedBox(height: 12),
-                Container(height: 14, width: double.infinity, color: const Color(0xFF0A0A0F)),
+                Container(
+                  height: 14,
+                  width: double.infinity,
+                  color: const Color(0xFF0A0A0F),
+                ),
                 const SizedBox(height: 6),
-                Container(height: 14, width: 150, color: const Color(0xFF0A0A0F)),
+                Container(
+                  height: 14,
+                  width: 150,
+                  color: const Color(0xFF0A0A0F),
+                ),
               ],
             ),
-          )
+          ),
         ],
       ),
     );

@@ -7,12 +7,14 @@ class ScanState {
   final bool isSuccess;
   final String? errorMessage;
   final String? participantName;
+  final Map<String, dynamic>? extraData; // For "Already checked-in" info
 
   ScanState({
     this.isProcessing = false,
     this.isSuccess = false,
     this.errorMessage,
     this.participantName,
+    this.extraData,
   });
 
   ScanState copyWith({
@@ -20,12 +22,14 @@ class ScanState {
     bool? isSuccess,
     String? errorMessage,
     String? participantName,
+    Map<String, dynamic>? extraData,
   }) {
     return ScanState(
       isProcessing: isProcessing ?? this.isProcessing,
       isSuccess: isSuccess ?? this.isSuccess,
       errorMessage: errorMessage,
-      participantName: participantName,
+      participantName: participantName ?? this.participantName,
+      extraData: extraData ?? this.extraData,
     );
   }
 }
@@ -36,53 +40,80 @@ class ScanController extends StateNotifier<ScanState> {
 
   ScanController(this._dio, this._ref) : super(ScanState());
 
-  Future<void> processQR(String token) async {
-    if (state.isProcessing) return;
-    state = state.copyWith(isProcessing: true, isSuccess: false, errorMessage: null, participantName: null);
+  void setProcessing(bool value) {
+    state = state.copyWith(isProcessing: value);
+  }
+
+  Future<Map<String, dynamic>?> fetchPreview(String token) async {
+    if (state.isProcessing) return null;
+    state = state.copyWith(isProcessing: true, errorMessage: null);
 
     try {
-      final response = await _dio.post('/checkin/qr/', data: {
-        "qr_token": token,
-      });
+      final response = await _dio.post(
+        '/checkin/qr-preview/',
+        data: {"qr_token": token},
+      );
 
       if (response.statusCode == 200) {
-        state = state.copyWith(
-          isProcessing: false,
-          isSuccess: true,
-          participantName: response.data['participant_name'] ?? 'Participant',
-        );
-      } else {
-        state = state.copyWith(
-          isProcessing: false,
-          isSuccess: false,
-          errorMessage: "Invalid QR",
-        );
-      }
-    } on DioException catch (e) {
-      String errMsg = "Invalid QR";
-      if (e.response != null) {
-        final data = e.response!.data;
-        if (data is Map) {
-          final errStr = data.toString();
-          if (errStr.contains('Already checked-in')) {
-            errMsg = 'Participant already signed in';
-          } else if (errStr.contains('Not allowed')) {
-            errMsg = 'Access denied for this event';
-          }
+        state = state.copyWith(isProcessing: false);
+        final data = response.data;
+        if (data is Map && 
+            (data['already_checked_in'] == true || 
+             data['error'].toString().contains('Already checked-in'))) {
+           return {
+            "already_checked_in": true,
+            "participant_name": data["participant_name"],
+            "event_name": data["event_name"],
+            "slot": data["slot"],
+          };
         }
+        return response.data;
       }
-      state = state.copyWith(
-        isProcessing: false,
-        isSuccess: false,
-        errorMessage: errMsg,
-      );
+    } on DioError catch (e) {
+      state = state.copyWith(isProcessing: false);
+      final data = e.response?.data;
+      if (data is Map && 
+          (data['already_checked_in'] == true || 
+           data.toString().contains('Already checked-in'))) {
+        return {
+          "already_checked_in": true,
+          "participant_name": data["participant_name"],
+          "event_name": data["event_name"],
+          "slot": data["slot"],
+        };
+      }
+      rethrow;
     } catch (e) {
-      state = state.copyWith(
-        isProcessing: false,
-        isSuccess: false,
-        errorMessage: "Invalid QR",
-      );
+      state = state.copyWith(isProcessing: false);
+      rethrow;
     }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> checkIn(String token) async {
+    state = state.copyWith(isProcessing: true, errorMessage: null);
+    try {
+      final response = await _dio.post(
+        '/checkin/qr/',
+        data: {"qr_token": token},
+      );
+      state = state.copyWith(isProcessing: false, isSuccess: true);
+      return response.data;
+    } on DioError catch (e) {
+      state = state.copyWith(isProcessing: false, isSuccess: false);
+      rethrow;
+    } catch (e) {
+      state = state.copyWith(isProcessing: false, isSuccess: false);
+      rethrow;
+    }
+  }
+
+  void markSuccess(String name) {
+    state = state.copyWith(
+      isSuccess: true,
+      participantName: name,
+      isProcessing: false,
+    );
   }
 
   void reset() {
@@ -90,7 +121,9 @@ class ScanController extends StateNotifier<ScanState> {
   }
 }
 
-final scanControllerProvider = StateNotifierProvider<ScanController, ScanState>((ref) {
-  final dio = ref.watch(dioProvider);
-  return ScanController(dio, ref);
-});
+final scanControllerProvider = StateNotifierProvider<ScanController, ScanState>(
+  (ref) {
+    final dio = ref.watch(dioProvider);
+    return ScanController(dio, ref);
+  },
+);

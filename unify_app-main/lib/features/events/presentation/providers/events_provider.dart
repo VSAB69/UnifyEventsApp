@@ -16,29 +16,32 @@ final eventsProvider = FutureProvider<List<EventModel>>((ref) async {
     if (response.data is List) {
       dataList = response.data;
     } else if (response.data is Map) {
-      dataList = response.data['results'] ??
+      dataList =
+          response.data['results'] ??
           response.data['data'] ??
           response.data['events'] ??
           [];
     }
 
     return dataList.map((json) => EventModel.fromJson(json)).toList();
-
-  } on DioException catch (e) {
+  } on DioError catch (e) {
     throw AppException(
-        e.response?.data?['error'] ??
-        e.response?.data?['detail'] ??
-        "Failed to fetch events");
-
+      e.response?.data?['error'] ??
+          e.response?.data?['detail'] ??
+          "Failed to fetch events",
+    );
   } catch (e, stack) {
     throw AppException("Parse Error: $e");
   }
 });
 
-final filteredEventsProvider = FutureProvider.family<List<EventModel>, String>((ref, type) async {
+final filteredEventsProvider = FutureProvider.family<List<EventModel>, String>((
+  ref,
+  type,
+) async {
   final dio = ref.read(dioProvider);
   String? parentEventId;
-  
+
   if (type == 'phaseshift') {
     parentEventId = '1';
   } else if (type == 'utsav') {
@@ -48,26 +51,38 @@ final filteredEventsProvider = FutureProvider.family<List<EventModel>, String>((
   try {
     final response = await dio.get(
       '/events/browse/',
-      queryParameters: parentEventId != null ? {'parent_event': parentEventId} : null,
+      queryParameters: parentEventId != null
+          ? {'parent_event': parentEventId}
+          : null,
     );
 
     List<dynamic> dataList = [];
     if (response.data is List) {
       dataList = response.data;
     } else if (response.data is Map) {
-      dataList = response.data['results'] ?? response.data['data'] ?? response.data['events'] ?? [];
+      dataList =
+          response.data['results'] ??
+          response.data['data'] ??
+          response.data['events'] ??
+          [];
     }
 
     var events = dataList.map((json) => EventModel.fromJson(json)).toList();
-    
+
     // For regular events, backend doesn't explicitly filter by exclusion natively, so we filter out 1 and 2 locally
     if (type == 'regular') {
-      events = events.where((e) => e.parentEventId != 1 && e.parentEventId != 2).toList();
+      events = events
+          .where((e) => e.parentEventId != 1 && e.parentEventId != 2)
+          .toList();
     }
 
     return events;
-  } on DioException catch (e) {
-    throw AppException(e.response?.data?['error'] ?? e.response?.data?['detail'] ?? "Failed to fetch events");
+  } on DioError catch (e) {
+    throw AppException(
+      e.response?.data?['error'] ??
+          e.response?.data?['detail'] ??
+          "Failed to fetch events",
+    );
   } catch (e) {
     throw AppException("Parse Error: $e");
   }

@@ -12,10 +12,11 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderStateMixin {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _pulseController;
-  
+
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
@@ -29,7 +30,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -40,13 +41,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
       curve: Curves.easeOut,
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOutQuart,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(
+          CurvedAnimation(parent: _fadeController, curve: Curves.easeOutQuart),
+        );
 
     _fadeController.forward();
   }
@@ -69,10 +67,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFFFF1C7C),
-            content: Text(next.error!, style: GoogleFonts.spaceMono(color: Colors.white, fontWeight: FontWeight.bold)),
+            content: Text(
+              next.error!,
+              style: GoogleFonts.spaceMono(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          )
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
         );
       }
     });
@@ -97,12 +103,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                       builder: (context, child) {
                         return ShaderMask(
                           shaderCallback: (bounds) => LinearGradient(
-                            colors: const [Color(0xFF00E5FF), Color(0xFFFF1C7C)],
+                            colors: const [
+                              Color(0xFF00E5FF),
+                              Color(0xFFFF1C7C),
+                            ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             stops: [
                               0.0 + (_pulseController.value * 0.2),
-                              1.0 - (_pulseController.value * 0.2)
+                              1.0 - (_pulseController.value * 0.2),
                             ],
                           ).createShader(bounds),
                           child: Text(
@@ -142,23 +151,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF00E5FF).withOpacity(0.05 + (_pulseController.value * 0.05)),
+                                  color: const Color(0xFF00E5FF).withOpacity(
+                                    0.05 + (_pulseController.value * 0.05),
+                                  ),
                                   blurRadius: 30,
                                   spreadRadius: 5,
-                                )
+                                ),
                               ],
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(24),
                               child: BackdropFilter(
-                                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                                filter: ImageFilter.blur(
+                                  sigmaX: 15,
+                                  sigmaY: 15,
+                                ),
                                 child: Container(
                                   padding: const EdgeInsets.all(32),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0A0A0F).withOpacity(0.7),
+                                    color: const Color(
+                                      0xFF0A0A0F,
+                                    ).withOpacity(0.7),
                                     borderRadius: BorderRadius.circular(24),
                                     border: Border.all(
-                                      color: const Color(0xFF00E5FF).withOpacity(0.3),
+                                      color: const Color(
+                                        0xFF00E5FF,
+                                      ).withOpacity(0.3),
                                       width: 1.5,
                                     ),
                                   ),
@@ -193,14 +211,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(16),
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFFFF1C7C), Color(0xFFB026FF)],
+                                    colors: [
+                                      Color(0xFFFF1C7C),
+                                      Color(0xFFB026FF),
+                                    ],
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFFF1C7C).withOpacity(0.4 + (_pulseController.value * 0.2)),
+                                      color: const Color(0xFFFF1C7C)
+                                          .withOpacity(
+                                            0.4 +
+                                                (_pulseController.value * 0.2),
+                                          ),
                                       blurRadius: 20,
                                       offset: const Offset(0, 4),
-                                    )
+                                    ),
                                   ],
                                 ),
                                 child: Material(
@@ -212,22 +237,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
                                         ? null
                                         : () {
                                             FocusScope.of(context).unfocus();
-                                            ref.read(authProvider.notifier).login(
+                                            ref
+                                                .read(authProvider.notifier)
+                                                .login(
                                                   usernameController.text,
                                                   passwordController.text,
                                                 );
                                           },
                                     child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 20),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 20,
+                                      ),
                                       child: Center(
                                         child: authState.isLoading
                                             ? const SizedBox(
                                                 height: 24,
                                                 width: 24,
-                                                child: CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                  strokeWidth: 2.5,
-                                                ),
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                      strokeWidth: 2.5,
+                                                    ),
                                               )
                                             : Text(
                                                 "INITIATE_SESSION",
@@ -267,7 +297,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
     return TextFormField(
       controller: controller,
       obscureText: isPassword,
-      style: GoogleFonts.spaceMono(color: Colors.white, fontSize: 16, letterSpacing: 1.2),
+      style: GoogleFonts.spaceMono(
+        color: Colors.white,
+        fontSize: 16,
+        letterSpacing: 1.2,
+      ),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: GoogleFonts.spaceMono(
@@ -278,7 +312,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
         prefixIcon: Icon(icon, color: const Color(0xFF00E5FF)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: const Color(0xFF00E5FF).withOpacity(0.15), width: 1.5),
+          borderSide: BorderSide(
+            color: const Color(0xFF00E5FF).withOpacity(0.15),
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -286,7 +323,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> with TickerProviderSt
         ),
         filled: true,
         fillColor: Colors.black.withOpacity(0.3),
-        contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 20,
+          horizontal: 16,
+        ),
       ),
     );
   }

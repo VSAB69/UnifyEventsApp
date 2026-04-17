@@ -31,43 +31,47 @@ class _R2ImageWidgetState extends ConsumerState<R2ImageWidget> {
       return _buildPlaceholder();
     }
 
-    return ref.watch(eventImageProvider(widget.imageKey!)).when(
-      data: (signedUrl) {
-        if (signedUrl == null) return _buildPlaceholder();
-        
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(widget.borderRadius),
-          child: Image.network(
-            signedUrl,
-            height: widget.height,
-            width: widget.width,
-            fit: widget.fit,
-            errorBuilder: (_, __, ___) {
-              if (!_hasRetried) {
-                _hasRetried = true;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  ref.read(r2ImageServiceProvider).invalidateCache(widget.imageKey!);
-                  ref.refresh(eventImageProvider(widget.imageKey!));
-                });
-                return _buildLoading();
-              }
-              return _buildPlaceholder();
-            },
-            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-              if (wasSynchronouslyLoaded) return child;
-              return AnimatedOpacity(
-                opacity: frame == null ? 0 : 1,
-                duration: const Duration(milliseconds: 600),
-                curve: Curves.easeOut,
-                child: child,
-              );
-            },
-          ),
+    return ref
+        .watch(eventImageProvider(widget.imageKey!))
+        .when(
+          data: (signedUrl) {
+            if (signedUrl == null) return _buildPlaceholder();
+
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(widget.borderRadius),
+              child: Image.network(
+                signedUrl,
+                height: widget.height,
+                width: widget.width,
+                fit: widget.fit,
+                errorBuilder: (_, __, ___) {
+                  if (!_hasRetried) {
+                    _hasRetried = true;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      ref
+                          .read(r2ImageServiceProvider)
+                          .invalidateCache(widget.imageKey!);
+                      ref.refresh(eventImageProvider(widget.imageKey!));
+                    });
+                    return _buildLoading();
+                  }
+                  return _buildPlaceholder();
+                },
+                frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                  if (wasSynchronouslyLoaded) return child;
+                  return AnimatedOpacity(
+                    opacity: frame == null ? 0 : 1,
+                    duration: const Duration(milliseconds: 600),
+                    curve: Curves.easeOut,
+                    child: child,
+                  );
+                },
+              ),
+            );
+          },
+          loading: () => _buildLoading(),
+          error: (_, __) => _buildPlaceholder(),
         );
-      },
-      loading: () => _buildLoading(),
-      error: (_, __) => _buildPlaceholder(),
-    );
   }
 
   Widget _buildLoading() {
@@ -87,7 +91,7 @@ class _R2ImageWidgetState extends ConsumerState<R2ImageWidget> {
           ),
         );
       },
-      onEnd: () {}, 
+      onEnd: () {},
     );
   }
 

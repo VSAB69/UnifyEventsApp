@@ -14,7 +14,9 @@ class ConstraintModel {
   factory ConstraintModel.fromJson(Map<String, dynamic> json) {
     return ConstraintModel(
       bookingType: json['booking_type']?.toString().toLowerCase() ?? 'single',
-      fixed: json['fixed'] == true || json['fixed']?.toString().toLowerCase() == 'true',
+      fixed:
+          json['fixed'] == true ||
+          json['fixed']?.toString().toLowerCase() == 'true',
       lowerLimit: int.tryParse(json['lower_limit']?.toString() ?? '1') ?? 1,
       upperLimit: int.tryParse(json['upper_limit']?.toString() ?? '1') ?? 1,
     );

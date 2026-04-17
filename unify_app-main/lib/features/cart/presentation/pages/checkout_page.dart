@@ -19,7 +19,10 @@ class CheckoutPage extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => context.pop(),
         ),
-        title: const Text('Checkout Summary', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Checkout Summary',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -33,12 +36,18 @@ class CheckoutPage extends ConsumerWidget {
             for (var item in items) {
               final itemId = item['id'];
               final tempBookingsAsync = ref.watch(tempBookingsProvider(itemId));
-              final bookingsCount = tempBookingsAsync.valueOrNull?.length ?? item['participants_count'] ?? 1;
+              final bookingsCount =
+                  tempBookingsAsync.valueOrNull?.length ??
+                  item['participants_count'] ??
+                  1;
 
               String eventId = '';
-              if (item['event_id'] != null) eventId = item['event_id'].toString();
-              else if (item['event'] is int) eventId = item['event'].toString();
-              else if (item['event'] is Map) eventId = item['event']['id'].toString();
+              if (item['event_id'] != null)
+                eventId = item['event_id'].toString();
+              else if (item['event'] is int)
+                eventId = item['event'].toString();
+              else if (item['event'] is Map)
+                eventId = item['event']['id'].toString();
 
               num basePrice = 0;
               if (item['event_price'] != null) {
@@ -46,9 +55,17 @@ class CheckoutPage extends ConsumerWidget {
               } else if (item['price'] != null) {
                 basePrice = num.tryParse(item['price'].toString()) ?? 0;
               } else if (item['event'] is Map) {
-                basePrice = num.tryParse(item['event']['price']?.toString() ?? item['event']['fee']?.toString() ?? '0') ?? 0;
+                basePrice =
+                    num.tryParse(
+                      item['event']['price']?.toString() ??
+                          item['event']['fee']?.toString() ??
+                          '0',
+                    ) ??
+                    0;
               } else if (eventsAsync.valueOrNull != null) {
-                final eventMatch = eventsAsync.value!.where((e) => e.id.toString() == eventId).firstOrNull;
+                final eventMatch = eventsAsync.value!
+                    .where((e) => e.id.toString() == eventId)
+                    .firstOrNull;
                 if (eventMatch != null) basePrice = eventMatch.price ?? 0;
               }
 
@@ -56,7 +73,12 @@ class CheckoutPage extends ConsumerWidget {
             }
 
             if (items.isEmpty) {
-              return const Center(child: Text("Your cart is empty", style: TextStyle(color: Colors.white54, fontSize: 18)));
+              return const Center(
+                child: Text(
+                  "Your cart is empty",
+                  style: TextStyle(color: Colors.white54, fontSize: 18),
+                ),
+              );
             }
 
             return Stack(
@@ -66,12 +88,9 @@ class CheckoutPage extends ConsumerWidget {
                     SliverPadding(
                       padding: const EdgeInsets.all(20),
                       sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            return CheckoutItemCard(item: items[index]);
-                          },
-                          childCount: items.length,
-                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          return CheckoutItemCard(item: items[index]);
+                        }, childCount: items.length),
                       ),
                     ),
                     SliverToBoxAdapter(
@@ -81,13 +100,29 @@ class CheckoutPage extends ConsumerWidget {
                         decoration: BoxDecoration(
                           color: const Color(0xFF1B1B26),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.3)),
+                          border: Border.all(
+                            color: const Color(0xFF7C3AED).withOpacity(0.3),
+                          ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Grand Total:', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                            Text('₹$grandTotal', style: const TextStyle(color: Color(0xFF38BDF8), fontSize: 24, fontWeight: FontWeight.bold)),
+                            const Text(
+                              'Grand Total:',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '₹$grandTotal',
+                              style: const TextStyle(
+                                color: Color(0xFF38BDF8),
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -103,20 +138,36 @@ class CheckoutPage extends ConsumerWidget {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF7C3AED),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       onPressed: () {
                         context.push('/payment', extra: grandTotal);
                       },
-                      child: const Text('Proceed to Payment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                      child: const Text(
+                        'Proceed to Payment',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ],
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
-          error: (err, _) => const Center(child: Text('Error loading checkout', style: TextStyle(color: Colors.redAccent))),
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
+          ),
+          error: (err, _) => const Center(
+            child: Text(
+              'Error loading checkout',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
         ),
       ),
     );
@@ -152,16 +203,25 @@ class CheckoutItemCard extends ConsumerWidget {
     } else if (item['price'] != null) {
       basePrice = num.tryParse(item['price'].toString()) ?? 0;
     } else if (item['event'] is Map) {
-      basePrice = num.tryParse(item['event']['price']?.toString() ?? item['event']['fee']?.toString() ?? '0') ?? 0;
+      basePrice =
+          num.tryParse(
+            item['event']['price']?.toString() ??
+                item['event']['fee']?.toString() ??
+                '0',
+          ) ??
+          0;
     }
-    
+
     final itemId = item['id'];
 
     final tempBookingsAsync = ref.watch(tempBookingsProvider(itemId));
     final tempTimeslotsAsync = ref.watch(tempTimeslotsProvider(itemId));
     final slotsAsync = ref.watch(slotsProvider(eventId));
-    
-    final bookingsCount = tempBookingsAsync.valueOrNull?.length ?? item['participants_count'] ?? 1;
+
+    final bookingsCount =
+        tempBookingsAsync.valueOrNull?.length ??
+        item['participants_count'] ??
+        1;
     final itemTotal = basePrice * bookingsCount;
 
     return Container(
@@ -179,8 +239,24 @@ class CheckoutItemCard extends ConsumerWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: Text(eventName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold))),
-                Text('₹$itemTotal (${bookingsCount} × ₹$basePrice)', style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 16)),
+                Expanded(
+                  child: Text(
+                    eventName,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Text(
+                  '₹$itemTotal (${bookingsCount} × ₹$basePrice)',
+                  style: const TextStyle(
+                    color: Color(0xFF38BDF8),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
               ],
             ),
           ),
@@ -191,24 +267,48 @@ class CheckoutItemCard extends ConsumerWidget {
               if (tempSlots.isEmpty) return const SizedBox();
               final selectedSlotId = tempSlots.first['slot'];
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: slotsAsync.when(
                   data: (slots) {
                     try {
-                      final matchingSlot = slots.firstWhere((s) => s.id == selectedSlotId);
+                      final matchingSlot = slots.firstWhere(
+                        (s) => s.id == selectedSlotId,
+                      );
                       return Row(
                         children: [
-                          const Icon(Icons.access_time, color: Colors.white54, size: 16),
+                          const Icon(
+                            Icons.access_time,
+                            color: Colors.white54,
+                            size: 16,
+                          ),
                           const SizedBox(width: 8),
-                          Text('${matchingSlot.startTime} - ${matchingSlot.endTime}', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                          Text(
+                            '${matchingSlot.startTime} - ${matchingSlot.endTime}',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                            ),
+                          ),
                         ],
                       );
                     } catch (_) {
-                       return const Text('Slot selected but unavailable', style: TextStyle(color: Colors.white54, fontSize: 14));
+                      return const Text(
+                        'Slot selected but unavailable',
+                        style: TextStyle(color: Colors.white54, fontSize: 14),
+                      );
                     }
                   },
-                  loading: () => const Text('Loading slot details...', style: TextStyle(color: Colors.white54, fontSize: 14)),
-                  error: (_, __) => const Text('Error loading slot', style: TextStyle(color: Colors.white54, fontSize: 14)),
+                  loading: () => const Text(
+                    'Loading slot details...',
+                    style: TextStyle(color: Colors.white54, fontSize: 14),
+                  ),
+                  error: (_, __) => const Text(
+                    'Error loading slot',
+                    style: TextStyle(color: Colors.white54, fontSize: 14),
+                  ),
                 ),
               );
             },
@@ -222,16 +322,30 @@ class CheckoutItemCard extends ConsumerWidget {
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: bookings.map((booking) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person, color: Colors.white54, size: 16),
-                        const SizedBox(width: 8),
-                        Text(booking['name'] ?? 'Participant', style: const TextStyle(color: Colors.white70, fontSize: 14)),
-                      ],
-                    ),
-                  )).toList(),
+                  children: bookings
+                      .map(
+                        (booking) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.person,
+                                color: Colors.white54,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                booking['name'] ?? 'Participant',
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               );
             },

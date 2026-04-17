@@ -21,10 +21,18 @@ class EventModel {
     return EventModel(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       parentEventId: int.tryParse(json['parent_event']?.toString() ?? ''),
-      title: json['title']?.toString() ?? json['name']?.toString() ?? 'Unknown Event',
+      title:
+          json['title']?.toString() ??
+          json['name']?.toString() ??
+          'Unknown Event',
       description: json['description']?.toString() ?? '',
-      bannerImage: json['image_key']?.toString() ?? json['banner_image']?.toString() ?? json['image']?.toString(),
-      price: num.tryParse(json['price']?.toString() ?? json['fee']?.toString() ?? ''),
+      bannerImage:
+          json['image_key']?.toString() ??
+          json['banner_image']?.toString() ??
+          json['image']?.toString(),
+      price: num.tryParse(
+        json['price']?.toString() ?? json['fee']?.toString() ?? '',
+      ),
       date: json['date']?.toString() ?? json['start_time']?.toString(),
     );
   }

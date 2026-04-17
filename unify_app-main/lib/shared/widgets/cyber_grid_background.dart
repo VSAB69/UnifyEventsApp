@@ -12,14 +12,10 @@ class CyberGridBackground extends StatelessWidget {
       children: [
         // Dark Base
         Container(color: const Color(0xFF0A0A0F)),
-        
+
         // Grid Painter
-        Positioned.fill(
-          child: CustomPaint(
-            painter: _GridPainter(),
-          ),
-        ),
-        
+        Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+
         // Glow effects (optional ambient light from bottom left and top right)
         Positioned(
           top: -200,
@@ -51,7 +47,7 @@ class CyberGridBackground extends StatelessWidget {
             ),
           ),
         ),
-        
+
         child,
       ],
     );

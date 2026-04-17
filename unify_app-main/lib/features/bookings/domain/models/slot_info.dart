@@ -4,12 +4,7 @@ class SlotInfo {
   final String? endTime;
   final bool unlimited;
 
-  SlotInfo({
-    this.date,
-    this.startTime,
-    this.endTime,
-    required this.unlimited,
-  });
+  SlotInfo({this.date, this.startTime, this.endTime, required this.unlimited});
 
   factory SlotInfo.fromJson(Map<String, dynamic> json) {
     return SlotInfo(
@@ -33,16 +28,16 @@ String formatTimeHHMM(String? timeRaw) {
   if (timeRaw == null || timeRaw.isEmpty) return '';
   num? hOverride;
   num? mOverride;
-  
+
   final parts = timeRaw.split(':');
   if (parts.isNotEmpty) hOverride = num.tryParse(parts[0]);
   if (parts.length > 1) mOverride = num.tryParse(parts[1]);
 
   if (hOverride == null || mOverride == null) return timeRaw;
-  
+
   final isPM = hOverride >= 12;
   final hr12 = hOverride % 12 == 0 ? 12 : hOverride % 12;
   final minStr = mOverride.toInt().toString().padLeft(2, '0');
-  
+
   return '$hr12:$minStr ${isPM ? 'PM' : 'AM'}';
 }

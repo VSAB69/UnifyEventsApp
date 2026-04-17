@@ -16,13 +16,17 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderStateMixin {
+class _HomePageState extends ConsumerState<HomePage>
+    with SingleTickerProviderStateMixin {
   late AnimationController _animController;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(seconds: 1))..forward();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..forward();
   }
 
   @override
@@ -39,7 +43,8 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     final bookingsAsync = ref.watch(myBookingsProvider);
 
     return Scaffold(
-      backgroundColor: Colors.transparent, // Let the main_layout grid shine through
+      backgroundColor:
+          Colors.transparent, // Let the main_layout grid shine through
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
@@ -87,7 +92,8 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                                     ),
                                   ),
                                   TextSpan(
-                                    text: user?.username.toUpperCase() ?? "GUEST",
+                                    text:
+                                        user?.username.toUpperCase() ?? "GUEST",
                                     style: GoogleFonts.bebasNeue(
                                       color: const Color(0xFFFF1C7C),
                                       fontSize: 48,
@@ -110,18 +116,41 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                                   height: 44,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: const Color(0xFF7C3AED).withOpacity(0.5), width: 2),
+                                    border: Border.all(
+                                      color: const Color(
+                                        0xFF7C3AED,
+                                      ).withOpacity(0.5),
+                                      width: 2,
+                                    ),
                                     gradient: const LinearGradient(
-                                      colors: [Color(0xFF7C3AED), Color(0xFFE81CFF)],
+                                      colors: [
+                                        Color(0xFF7C3AED),
+                                        Color(0xFFE81CFF),
+                                      ],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
-                                    boxShadow: [BoxShadow(color: const Color(0xFF7C3AED).withOpacity(0.3), blurRadius: 10, spreadRadius: 2)],
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF7C3AED,
+                                        ).withOpacity(0.3),
+                                        blurRadius: 10,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
                                   ),
                                   child: Center(
                                     child: Text(
-                                      (user?.username != null && user!.username.isNotEmpty) ? user.username[0].toUpperCase() : 'G',
-                                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                      (user?.username != null &&
+                                              user!.username.isNotEmpty)
+                                          ? user.username[0].toUpperCase()
+                                          : 'G',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -149,31 +178,40 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                   ),
                 ),
               ),
-              
+
               SliverToBoxAdapter(
                 child: FadeTransition(
-                  opacity: CurvedAnimation(parent: _animController, curve: const Interval(0.0, 0.4)),
+                  opacity: CurvedAnimation(
+                    parent: _animController,
+                    curve: const Interval(0.0, 0.4),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       children: [
                         _buildDomainCard(
-                          context, 
-                          'PHASE SHIFT', 'TECH SYMPOSIUM', 
-                          [const Color(0xFF00E5FF), const Color(0xFF0055FF)], 
-                          Icons.bolt, '/events-list?type=phaseshift'
+                          context,
+                          'PHASE SHIFT',
+                          'TECH SYMPOSIUM',
+                          [const Color(0xFF00E5FF), const Color(0xFF0055FF)],
+                          Icons.bolt,
+                          '/events-list?type=phaseshift',
                         ),
                         _buildDomainCard(
-                          context, 
-                          'UTSAV', 'CULTURAL FEST', 
-                          [const Color(0xFFFF1C7C), const Color(0xFFFF8A00)], 
-                          Icons.auto_awesome, '/events-list?type=utsav'
+                          context,
+                          'UTSAV',
+                          'CULTURAL FEST',
+                          [const Color(0xFFFF1C7C), const Color(0xFFFF8A00)],
+                          Icons.auto_awesome,
+                          '/events-list?type=utsav',
                         ),
                         _buildDomainCard(
-                          context, 
-                          'CLUB EVENTS', 'STUDENT GUILDS', 
-                          [const Color(0xFF39FF14), const Color(0xFF00AA00)], 
-                          Icons.group_work, '/events-list?type=regular'
+                          context,
+                          'CLUB EVENTS',
+                          'STUDENT GUILDS',
+                          [const Color(0xFF39FF14), const Color(0xFF00AA00)],
+                          Icons.group_work,
+                          '/events-list?type=regular',
                         ),
                       ],
                     ),
@@ -186,12 +224,12 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
                   child: Text(
-                    'RECENT LOGS', 
+                    'RECENT LOGS',
                     style: GoogleFonts.spaceMono(
-                      color: Colors.white54, 
-                      fontSize: 12, 
-                      fontWeight: FontWeight.bold, 
-                      letterSpacing: 2
+                      color: Colors.white54,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
                     ),
                   ),
                 ),
@@ -203,7 +241,13 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                     return SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Text("NO LOGS FOUND. INITIALIZE A TRANSFER.", style: GoogleFonts.spaceMono(color: Colors.white38, fontSize: 12)),
+                        child: Text(
+                          "NO LOGS FOUND. INITIALIZE A TRANSFER.",
+                          style: GoogleFonts.spaceMono(
+                            color: Colors.white38,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                     );
                   }
@@ -211,20 +255,27 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                   return SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final item = recent[index];
-                          return FadeTransition(
-                            opacity: CurvedAnimation(parent: _animController, curve: const Interval(0.4, 0.8)),
-                            child: _buildLogCard(context, item),
-                          );
-                        },
-                        childCount: recent.length,
-                      ),
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final item = recent[index];
+                        return FadeTransition(
+                          opacity: CurvedAnimation(
+                            parent: _animController,
+                            curve: const Interval(0.4, 0.8),
+                          ),
+                          child: _buildLogCard(context, item),
+                        );
+                      }, childCount: recent.length),
                     ),
                   );
                 },
-                loading: () => const SliverToBoxAdapter(child: Center(child: CircularProgressIndicator(color: Color(0xFFFF1C7C)))),
+                loading: () => SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: Center(
+                      child: CircularProgressIndicator(color: const Color(0xFF7C3AED)),
+                    ),
+                  ),
+                ),
                 error: (_, __) => const SliverToBoxAdapter(child: SizedBox()),
               ),
 
@@ -233,27 +284,47 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
                   child: Text(
-                    'AVAILABLE NODES', 
+                    'AVAILABLE NODES',
                     style: GoogleFonts.spaceMono(
-                      color: Colors.white54, 
-                      fontSize: 12, 
-                      fontWeight: FontWeight.bold, 
-                      letterSpacing: 2
+                      color: Colors.white54,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2,
                     ),
                   ),
                 ),
               ),
-              
+
               SliverToBoxAdapter(
                 child: FadeTransition(
-                  opacity: CurvedAnimation(parent: _animController, curve: const Interval(0.2, 0.6)),
+                  opacity: CurvedAnimation(
+                    parent: _animController,
+                    curve: const Interval(0.2, 0.6),
+                  ),
                   child: SlideTransition(
-                    position: Tween<Offset>(begin: const Offset(0.1, 0), end: Offset.zero).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut)),
+                    position:
+                        Tween<Offset>(
+                          begin: const Offset(0.1, 0),
+                          end: Offset.zero,
+                        ).animate(
+                          CurvedAnimation(
+                            parent: _animController,
+                            curve: Curves.easeOut,
+                          ),
+                        ),
                     child: SizedBox(
                       height: 180,
                       child: eventsAsync.when(
                         data: (events) {
-                          if (events.isEmpty) return Center(child: Text("NO NODES OBTAINED.", style: GoogleFonts.spaceMono(color: Colors.white38)));
+                          if (events.isEmpty)
+                            return Center(
+                              child: Text(
+                                "NO NODES OBTAINED.",
+                                style: GoogleFonts.spaceMono(
+                                  color: Colors.white38,
+                                ),
+                              ),
+                            );
                           return ListView.builder(
                             physics: const BouncingScrollPhysics(),
                             scrollDirection: Axis.horizontal,
@@ -264,8 +335,19 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                             },
                           );
                         },
-                        loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF))),
-                        error: (err, stack) => Center(child: Text('ERROR_CODE: $err', style: GoogleFonts.spaceMono(color: Colors.redAccent))),
+                        loading: () => Center(
+                          child: CircularProgressIndicator(
+                            color: const Color(0xFF7C3AED),
+                          ),
+                        ),
+                        error: (err, stack) => Center(
+                          child: Text(
+                            'ERROR_CODE: $err',
+                            style: GoogleFonts.spaceMono(
+                              color: Colors.redAccent,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -281,7 +363,14 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildDomainCard(BuildContext context, String title, String subtitle, List<Color> gradientColors, IconData icon, String route) {
+  Widget _buildDomainCard(
+    BuildContext context,
+    String title,
+    String subtitle,
+    List<Color> gradientColors,
+    IconData icon,
+    String route,
+  ) {
     return GestureDetector(
       onTap: () => context.push(route),
       child: Container(
@@ -297,7 +386,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
               color: gradientColors.first.withOpacity(0.08),
               blurRadius: 15,
               spreadRadius: -5,
-            )
+            ),
           ],
         ),
         child: Row(
@@ -318,14 +407,14 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                     color: gradientColors.first.withOpacity(0.5),
                     blurRadius: 15,
                     offset: const Offset(0, 4),
-                  )
+                  ),
                 ],
               ),
               child: Icon(icon, color: Colors.white, size: 28),
             ),
-            
+
             const SizedBox(width: 16),
-            
+
             // Text Details
             Expanded(
               child: Column(
@@ -353,7 +442,7 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                 ],
               ),
             ),
-            
+
             // Enter Arrow Button
             Container(
               padding: const EdgeInsets.all(8),
@@ -361,7 +450,11 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                 color: gradientColors.first.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.arrow_forward_ios, size: 14, color: gradientColors.first),
+              child: Icon(
+                Icons.arrow_forward_ios,
+                size: 14,
+                color: gradientColors.first,
+              ),
             ),
           ],
         ),
@@ -405,7 +498,10 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                 ),
                 Text(
                   '4/14/2026', // Ideally format timestamp from item
-                  style: GoogleFonts.spaceMono(color: Colors.white38, fontSize: 10),
+                  style: GoogleFonts.spaceMono(
+                    color: Colors.white38,
+                    fontSize: 10,
+                  ),
                 ),
               ],
             ),
@@ -453,12 +549,12 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                   Opacity(
                     opacity: 0.3,
                     child: R2ImageWidget(
-                      imageKey: event.bannerImage, 
-                      height: double.infinity, 
+                      imageKey: event.bannerImage,
+                      height: double.infinity,
                       borderRadius: 0,
                     ),
                   ),
-                  
+
                   // Content
                   Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -468,7 +564,11 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.confirmation_num_outlined, size: 14, color: Color(0xFFFF1C7C)),
+                            const Icon(
+                              Icons.confirmation_num_outlined,
+                              size: 14,
+                              color: Color(0xFFFF1C7C),
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'EVENT ACCESS TOKEN',
@@ -496,36 +596,65 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('STATUS', style: GoogleFonts.spaceMono(color: Colors.white38, fontSize: 8)),
-                                Text('VERIFIED_ENTRY', style: GoogleFonts.spaceMono(color: const Color(0xFF39FF14), fontSize: 10, fontWeight: FontWeight.bold)),
+                                Text(
+                                  'STATUS',
+                                  style: GoogleFonts.spaceMono(
+                                    color: Colors.white38,
+                                    fontSize: 8,
+                                  ),
+                                ),
+                                Text(
+                                  'VERIFIED_ENTRY',
+                                  style: GoogleFonts.spaceMono(
+                                    color: const Color(0xFF39FF14),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('NODE_REF', style: GoogleFonts.spaceMono(color: Colors.white38, fontSize: 8)),
-                                Text('0X-EVT-${event.id}', style: GoogleFonts.spaceMono(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                Text(
+                                  'NODE_REF',
+                                  style: GoogleFonts.spaceMono(
+                                    color: Colors.white38,
+                                    fontSize: 8,
+                                  ),
+                                ),
+                                Text(
+                                  '0X-EVT-${event.id}',
+                                  style: GoogleFonts.spaceMono(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
-                        )
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Dashed Divider
             Container(
               width: 1,
               child: Flex(
                 direction: Axis.vertical,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(20, (_) => Container(width: 1, height: 4, color: Colors.white12)),
+                children: List.generate(
+                  20,
+                  (_) => Container(width: 1, height: 4, color: Colors.white12),
+                ),
               ),
             ),
-            
+
             // Right Stub Section
             Expanded(
               flex: 3,
@@ -535,10 +664,18 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('VALUE', style: GoogleFonts.spaceMono(color: Colors.white38, fontSize: 10)),
+                    Text(
+                      'VALUE',
+                      style: GoogleFonts.spaceMono(
+                        color: Colors.white38,
+                        fontSize: 10,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
-                      event.price != null && event.price! > 0 ? '₹${event.price}' : 'FREE',
+                      event.price != null && event.price! > 0
+                          ? '₹${event.price}'
+                          : 'FREE',
                       style: GoogleFonts.bebasNeue(
                         color: Colors.white,
                         fontSize: 24,
@@ -546,16 +683,22 @@ class _HomePageState extends ConsumerState<HomePage> with SingleTickerProviderSt
                     ),
                     const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.white54),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
                         'CLAIM SEAT',
-                        style: GoogleFonts.spaceMono(color: Colors.white, fontSize: 8),
+                        style: GoogleFonts.spaceMono(
+                          color: Colors.white,
+                          fontSize: 8,
+                        ),
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),

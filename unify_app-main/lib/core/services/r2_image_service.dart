@@ -28,13 +28,17 @@ class R2ImageService {
         '/secure/event-image/',
         queryParameters: {'key': imageKey},
       );
-      
+
       if (response.statusCode == 200) {
         final url = response.data['url']?.toString();
-        final expiresIn = int.tryParse(response.data['expires_in']?.toString() ?? '300') ?? 300;
-        
+        final expiresIn =
+            int.tryParse(response.data['expires_in']?.toString() ?? '300') ??
+            300;
+
         if (url != null) {
-          final expiryTime = DateTime.now().add(Duration(seconds: expiresIn - 30));
+          final expiryTime = DateTime.now().add(
+            Duration(seconds: expiresIn - 30),
+          );
           _cache[imageKey] = CachedImage(url, expiryTime);
           return url;
         }
@@ -54,12 +58,15 @@ final r2ImageServiceProvider = Provider<R2ImageService>((ref) {
   return R2ImageService(ref.read(dioProvider));
 });
 
-final eventImageProvider = FutureProvider.family<String?, String>((ref, imageKey) async {
-  // Cache the signed URL to avoid refetching. 
+final eventImageProvider = FutureProvider.family<String?, String>((
+  ref,
+  imageKey,
+) async {
+  // Cache the signed URL to avoid refetching.
   // It expires in 300s. We can let riverpod cache it as long as the provider is alive.
   // We can also use ref.keepAlive() to maintain cache across rebuilds within the page.
   ref.keepAlive();
-  
+
   final service = ref.read(r2ImageServiceProvider);
   return await service.getSignedUrl(imageKey);
 });

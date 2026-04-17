@@ -14,10 +14,14 @@ class BookingsPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('My Bookings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'My Bookings',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        automaticallyImplyLeading: false, // Usually embedded in MainLayout stack
+        automaticallyImplyLeading:
+            false, // Usually embedded in MainLayout stack
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -34,9 +38,19 @@ class BookingsPage extends ConsumerWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.confirmation_number_outlined, color: Colors.white24, size: 80),
+                          Icon(
+                            Icons.confirmation_number_outlined,
+                            color: Colors.white24,
+                            size: 80,
+                          ),
                           SizedBox(height: 16),
-                          Text('No bookings yet', style: TextStyle(color: Colors.white54, fontSize: 18)),
+                          Text(
+                            'No bookings yet',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 18,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -52,7 +66,9 @@ class BookingsPage extends ConsumerWidget {
                   // Animated staggered fade
                   return TweenAnimationBuilder<double>(
                     tween: Tween(begin: 0.0, end: 1.0),
-                    duration: Duration(milliseconds: 400 + (index * 100).clamp(0, 800)),
+                    duration: Duration(
+                      milliseconds: 400 + (index * 100).clamp(0, 800),
+                    ),
                     curve: Curves.easeOutCubic,
                     builder: (context, val, child) {
                       return Opacity(
@@ -67,15 +83,27 @@ class BookingsPage extends ConsumerWidget {
                 },
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED))),
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
+            ),
             error: (err, _) => Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.redAccent,
+                    size: 48,
+                  ),
                   const SizedBox(height: 16),
-                  const Text('Error loading bookings', style: TextStyle(color: Colors.white)),
-                  TextButton(onPressed: () => ref.invalidate(myBookingsProvider), child: const Text('RETRY'))
+                  const Text(
+                    'Error loading bookings',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  TextButton(
+                    onPressed: () => ref.invalidate(myBookingsProvider),
+                    child: const Text('RETRY'),
+                  ),
                 ],
               ),
             ),
@@ -128,26 +156,55 @@ class BookingOrderCard extends StatelessWidget {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: const Color(0xFF7C3AED).withOpacity(0.2), shape: BoxShape.circle),
-                      child: const Icon(Icons.check_circle, color: Color(0xFF7C3AED), size: 20),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF7C3AED).withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.check_circle,
+                        color: Color(0xFF7C3AED),
+                        size: 20,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Booking Confirmed', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text('Order #$id', style: const TextStyle(color: Colors.white54, fontSize: 13)),
+                        const Text(
+                          'Booking Confirmed',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Text(
+                          'Order #$id',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
-                Text('₹$totalAmount', style: const TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 20)),
+                Text(
+                  '₹$totalAmount',
+                  style: const TextStyle(
+                    color: Color(0xFF38BDF8),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
               ],
             ),
           ),
-          
+
           // Events List inside the Order
-          ...bookedEvents.map((eventItem) => BookedEventSegment(eventItem: eventItem)),
+          ...bookedEvents.map(
+            (eventItem) => BookedEventSegment(eventItem: eventItem),
+          ),
         ],
       ),
     );
@@ -164,14 +221,16 @@ class BookedEventSegment extends StatefulWidget {
 }
 
 class _BookedEventSegmentState extends State<BookedEventSegment> {
-
   @override
   Widget build(BuildContext context) {
     final eventName = widget.eventItem['event_name'] ?? 'Unknown Event';
     final lineTotal = widget.eventItem['line_total'] ?? 0;
     final pCount = widget.eventItem['participants_count'] ?? 1;
-    final slotInfo = widget.eventItem['slot_info'] ?? 'General Slot'; // Fallback mapping depending on backend
-    final participants = widget.eventItem['participants'] as List<dynamic>? ?? [];
+    final slotInfo =
+        widget.eventItem['slot_info'] ??
+        'General Slot'; // Fallback mapping depending on backend
+    final participants =
+        widget.eventItem['participants'] as List<dynamic>? ?? [];
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -179,7 +238,14 @@ class _BookedEventSegmentState extends State<BookedEventSegment> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // EVENT NAME
-          Text(eventName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(
+            eventName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 10),
 
           // DATE + TIME (FULL WIDTH)
@@ -194,7 +260,14 @@ class _BookedEventSegmentState extends State<BookedEventSegment> {
             children: [
               // LEFT: TICKETS + PRICE
               Expanded(
-                child: Text('Tickets: $pCount | ₹$lineTotal', style: const TextStyle(color: Color(0xFF7C3AED), fontWeight: FontWeight.bold, fontSize: 13)),
+                child: Text(
+                  'Tickets: $pCount | ₹$lineTotal',
+                  style: const TextStyle(
+                    color: Color(0xFF7C3AED),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
               ),
               // RIGHT: BUTTON
               ElevatedButton(
@@ -205,17 +278,35 @@ class _BookedEventSegmentState extends State<BookedEventSegment> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF7C3AED).withOpacity(0.15),
                   elevation: 0,
-                  side: BorderSide(color: const Color(0xFF7C3AED).withOpacity(0.5)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  side: BorderSide(
+                    color: const Color(0xFF7C3AED).withOpacity(0.5),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.confirmation_number, size: 16, color: Color(0xFF38BDF8)),
+                    Icon(
+                      Icons.confirmation_number,
+                      size: 16,
+                      color: Color(0xFF38BDF8),
+                    ),
                     SizedBox(width: 6),
-                    Text('View Ticket', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text(
+                      'View Ticket',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -235,7 +326,12 @@ class _BookedEventSegmentState extends State<BookedEventSegment> {
         children: [
           const Icon(Icons.access_time, color: Colors.white54, size: 14),
           const SizedBox(width: 6),
-          Expanded(child: Text(rawSlotInfo?.toString() ?? 'General Slot', style: const TextStyle(color: Colors.white54, fontSize: 13))),
+          Expanded(
+            child: Text(
+              rawSlotInfo?.toString() ?? 'General Slot',
+              style: const TextStyle(color: Colors.white54, fontSize: 13),
+            ),
+          ),
         ],
       );
     }

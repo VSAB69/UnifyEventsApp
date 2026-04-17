@@ -21,13 +21,13 @@ import '../../features/scan/presentation/scan_screen.dart';
 import '../../shared/layout/main_layout.dart';
 import 'router_notifier.dart';
 
-final rootNavigatorKey = GlobalKey<NavigatorState>();
+import '../navigation/navigation_service.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final notifier = RouterNotifier(ref);
 
   return GoRouter(
-    navigatorKey: rootNavigatorKey,
+    navigatorKey: navigatorKey,
     initialLocation: '/loading',
     refreshListenable: notifier,
 
@@ -67,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return EventsListPage(type: type);
         },
       ),
-      
+
       GoRoute(
         path: '/event-details/:id',
         builder: (context, state) {
@@ -88,7 +88,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/ticket/:id',
         builder: (context, state) {
-          return TicketPage(bookedEventId: int.tryParse(state.pathParameters['id'] ?? '0') ?? 0);
+          return TicketPage(
+            bookedEventId: int.tryParse(state.pathParameters['id'] ?? '0') ?? 0,
+          );
         },
       ),
       GoRoute(
@@ -98,35 +100,62 @@ final routerProvider = Provider<GoRouter>((ref) {
           return PaymentPage(totalAmount: totalAmount);
         },
       ),
-      GoRoute(
-        path: '/scan',
-        builder: (context, state) => const ScanScreen(),
-      ),
+      GoRoute(path: '/scan', builder: (context, state) => const ScanScreen()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return MainLayout(navigationShell: navigationShell);
         },
         branches: [
           StatefulShellBranch(
-            routes: [ GoRoute(path: '/home', builder: (context, state) => const HomePage()) ],
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (context, state) => const HomePage(),
+              ),
+            ],
           ),
           StatefulShellBranch(
-            routes: [ GoRoute(path: '/events', builder: (context, state) => const EventsPage()) ],
+            routes: [
+              GoRoute(
+                path: '/events',
+                builder: (context, state) => const EventsPage(),
+              ),
+            ],
           ),
           StatefulShellBranch(
-            routes: [ GoRoute(path: '/cart', builder: (context, state) => const CartPage()) ],
+            routes: [
+              GoRoute(
+                path: '/cart',
+                builder: (context, state) => const CartPage(),
+              ),
+            ],
           ),
           StatefulShellBranch(
-            routes: [ GoRoute(path: '/bookings', builder: (context, state) => const BookingsPage()) ],
+            routes: [
+              GoRoute(
+                path: '/bookings',
+                builder: (context, state) => const BookingsPage(),
+              ),
+            ],
           ),
           StatefulShellBranch(
-            routes: [ GoRoute(path: '/manage', builder: (context, state) => const ManageEventsPage()) ],
+            routes: [
+              GoRoute(
+                path: '/manage',
+                builder: (context, state) => const ManageEventsPage(),
+              ),
+            ],
           ),
           StatefulShellBranch(
-            routes: [ GoRoute(path: '/profile', builder: (context, state) => const ProfilePage()) ],
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (context, state) => const ProfilePage(),
+              ),
+            ],
           ),
         ],
-      )
+      ),
     ],
   );
 });

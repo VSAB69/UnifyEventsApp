@@ -10,7 +10,8 @@ class BookingSuccessPage extends StatefulWidget {
   State<BookingSuccessPage> createState() => _BookingSuccessPageState();
 }
 
-class _BookingSuccessPageState extends State<BookingSuccessPage> with TickerProviderStateMixin {
+class _BookingSuccessPageState extends State<BookingSuccessPage>
+    with TickerProviderStateMixin {
   late AnimationController _scaleController;
   late AnimationController _fadeController;
   late AnimationController _pulseController;
@@ -18,10 +19,19 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> with TickerProv
   @override
   void initState() {
     super.initState();
-    
-    _scaleController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
-    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+
+    _scaleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
 
     _scaleController.forward();
     Future.delayed(const Duration(milliseconds: 600), () {
@@ -49,7 +59,10 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> with TickerProv
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ScaleTransition(
-                  scale: CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
+                  scale: CurvedAnimation(
+                    parent: _scaleController,
+                    curve: Curves.elasticOut,
+                  ),
                   child: AnimatedBuilder(
                     animation: _pulseController,
                     builder: (context, child) {
@@ -60,25 +73,33 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> with TickerProv
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF7C3AED).withOpacity(0.4 * _pulseController.value + 0.2), 
-                              blurRadius: 40 + (20 * _pulseController.value), 
-                              spreadRadius: 10 + (5 * _pulseController.value)
+                              color: const Color(
+                                0xFF7C3AED,
+                              ).withOpacity(0.4 * _pulseController.value + 0.2),
+                              blurRadius: 40 + (20 * _pulseController.value),
+                              spreadRadius: 10 + (5 * _pulseController.value),
                             ),
                             BoxShadow(
-                              color: const Color(0xFF38BDF8).withOpacity(0.2 * _pulseController.value), 
-                              blurRadius: 60, 
-                              spreadRadius: 20
+                              color: const Color(
+                                0xFF38BDF8,
+                              ).withOpacity(0.2 * _pulseController.value),
+                              blurRadius: 60,
+                              spreadRadius: 20,
                             ),
                           ],
                           gradient: const LinearGradient(
                             colors: [Color(0xFF7C3AED), Color(0xFF38BDF8)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                          )
+                          ),
                         ),
-                        child: const Icon(Icons.check_rounded, size: 100, color: Colors.white),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 100,
+                          color: Colors.white,
+                        ),
                       );
-                    }
+                    },
                   ),
                 ),
                 const SizedBox(height: 50),
@@ -87,14 +108,23 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> with TickerProv
                   child: Column(
                     children: [
                       const Text(
-                        '🎉 Booking Confirmed!', 
-                        style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: 0.5)
+                        '🎉 Booking Confirmed!',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Your events are successfully booked.\nBooking ID: #${widget.bookingId}', 
+                        'Your events are successfully booked.\nBooking ID: #${widget.bookingId}',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70, fontSize: 16, height: 1.5)
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 16,
+                          height: 1.5,
+                        ),
                       ),
                       const SizedBox(height: 48),
                       Row(
@@ -103,12 +133,24 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> with TickerProv
                           Expanded(
                             child: OutlinedButton(
                               style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFF7C3AED)),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                side: const BorderSide(
+                                  color: Color(0xFF7C3AED),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
                               onPressed: () => context.go('/home'),
-                              child: const Text('Back to Home', style: TextStyle(color: Colors.white, fontSize: 16)),
+                              child: const Text(
+                                'Back to Home',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -116,11 +158,22 @@ class _BookingSuccessPageState extends State<BookingSuccessPage> with TickerProv
                             child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF7C3AED),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
                               ),
                               onPressed: () => context.go('/bookings'),
-                              child: const Text('View Bookings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                              child: const Text(
+                                'View Bookings',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                             ),
                           ),
                         ],
