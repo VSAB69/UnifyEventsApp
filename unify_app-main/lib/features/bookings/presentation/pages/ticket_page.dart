@@ -78,6 +78,27 @@ class _TicketPageState extends ConsumerState<TicketPage>
             letterSpacing: 1.5,
           ),
         ),
+        actions: [
+          bookedAsync.maybeWhen(
+            data: (data) => data['is_offline'] == true
+                ? Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.redAccent),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'OFFLINE',
+                      style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  )
+                : const SizedBox(),
+            orElse: () => const SizedBox(),
+          )
+        ],
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,

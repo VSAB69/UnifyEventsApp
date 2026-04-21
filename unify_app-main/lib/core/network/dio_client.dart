@@ -25,23 +25,28 @@ class DioClient {
       dio.interceptors.add(
         InterceptorsWrapper(
           onError: (e, handler) async {
-            final dataStr = e.response?.data?.toString() ?? "";
-            final isAuthError =
-                e.response?.statusCode == 401 ||
-                dataStr.contains(
-                  "Authentication credentials were not provided.",
-                );
+            final status = e.response?.statusCode;
 
-            if (isAuthError) {
-              // 🔥 CLEAR AUTH STATE
+            // ✅ ONLY logout on actual 401
+            if (status == 401) {
+              final context = navigatorKey.currentContext;
+
+              // clear auth safely
               final auth = ref.read(authProvider.notifier);
               await auth.logout();
 
-              // 🔥 NAVIGATE TO LOGIN
-              final context = navigatorKey.currentContext;
               if (context != null) {
                 GoRouter.of(context).go('/login');
               }
+            }
+
+            // ❌ DO NOT logout for network errors
+            final typeStr = e.type.toString().toLowerCase();
+            if (typeStr.contains('connection') ||
+                typeStr.contains('unknown') ||
+                typeStr.contains('timeout') ||
+                typeStr.contains('other')) {
+              // Offline → DO NOT logout
             }
 
             return handler.next(e);

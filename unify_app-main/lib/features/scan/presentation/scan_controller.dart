@@ -5,125 +5,50 @@ import '../../auth/presentation/providers/auth_provider.dart';
 class ScanState {
   final bool isProcessing;
   final bool isSuccess;
-  final String? errorMessage;
   final String? participantName;
-  final Map<String, dynamic>? extraData; // For "Already checked-in" info
 
-  ScanState({
-    this.isProcessing = false,
-    this.isSuccess = false,
-    this.errorMessage,
-    this.participantName,
-    this.extraData,
-  });
+  ScanState({this.isProcessing = false, this.isSuccess = false, this.participantName});
 
-  ScanState copyWith({
-    bool? isProcessing,
-    bool? isSuccess,
-    String? errorMessage,
-    String? participantName,
-    Map<String, dynamic>? extraData,
-  }) {
+  ScanState copyWith({bool? isProcessing, bool? isSuccess, String? participantName}) {
     return ScanState(
       isProcessing: isProcessing ?? this.isProcessing,
       isSuccess: isSuccess ?? this.isSuccess,
-      errorMessage: errorMessage,
       participantName: participantName ?? this.participantName,
-      extraData: extraData ?? this.extraData,
     );
   }
 }
 
 class ScanController extends StateNotifier<ScanState> {
   final Dio _dio;
-  final Ref _ref;
-
-  ScanController(this._dio, this._ref) : super(ScanState());
-
-  void setProcessing(bool value) {
-    state = state.copyWith(isProcessing: value);
-  }
+  ScanController(this._dio) : super(ScanState());
 
   Future<Map<String, dynamic>?> fetchPreview(String token) async {
-    if (state.isProcessing) return null;
-    state = state.copyWith(isProcessing: true, errorMessage: null);
-
+    state = state.copyWith(isProcessing: true);
     try {
-      final response = await _dio.post(
-        '/checkin/qr-preview/',
-        data: {"qr_token": token},
-      );
-
-      if (response.statusCode == 200) {
-        state = state.copyWith(isProcessing: false);
-        final data = response.data;
-        if (data is Map && 
-            (data['already_checked_in'] == true || 
-             data['error'].toString().contains('Already checked-in'))) {
-           return {
-            "already_checked_in": true,
-            "participant_name": data["participant_name"],
-            "event_name": data["event_name"],
-            "slot": data["slot"],
-          };
-        }
-        return response.data;
-      }
-    } on DioError catch (e) {
+      final response = await _dio.post('/checkin/qr-preview/', data: {"qr_token": token});
       state = state.copyWith(isProcessing: false);
-      final data = e.response?.data;
-      if (data is Map && 
-          (data['already_checked_in'] == true || 
-           data.toString().contains('Already checked-in'))) {
-        return {
-          "already_checked_in": true,
-          "participant_name": data["participant_name"],
-          "event_name": data["event_name"],
-          "slot": data["slot"],
-        };
-      }
-      rethrow;
-    } catch (e) {
+      return response.data; // Includes "status", "participant_name", "event_name"
+    } on DioException catch (e) {
       state = state.copyWith(isProcessing: false);
       rethrow;
     }
-    return null;
   }
 
   Future<Map<String, dynamic>> checkIn(String token) async {
-    state = state.copyWith(isProcessing: true, errorMessage: null);
+    state = state.copyWith(isProcessing: true);
     try {
-      final response = await _dio.post(
-        '/checkin/qr/',
-        data: {"qr_token": token},
-      );
-      state = state.copyWith(isProcessing: false, isSuccess: true);
+      final response = await _dio.post('/checkin/qr/', data: {"qr_token": token});
+      state = state.copyWith(isProcessing: false, isSuccess: true, participantName: response.data["participant_name"]);
       return response.data;
-    } on DioError catch (e) {
-      state = state.copyWith(isProcessing: false, isSuccess: false);
-      rethrow;
-    } catch (e) {
+    } on DioException catch (e) {
       state = state.copyWith(isProcessing: false, isSuccess: false);
       rethrow;
     }
   }
 
-  void markSuccess(String name) {
-    state = state.copyWith(
-      isSuccess: true,
-      participantName: name,
-      isProcessing: false,
-    );
-  }
-
-  void reset() {
-    state = ScanState();
-  }
+  void reset() => state = ScanState();
 }
 
 final scanControllerProvider = StateNotifierProvider<ScanController, ScanState>(
-  (ref) {
-    final dio = ref.watch(dioProvider);
-    return ScanController(dio, ref);
-  },
+  (ref) => ScanController(ref.watch(dioProvider)),
 );

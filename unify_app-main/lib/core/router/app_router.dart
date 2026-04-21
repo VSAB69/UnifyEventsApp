@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/loading_screen.dart';
+import '../../features/auth/presentation/screens/set_username_screen.dart';
+import '../../features/auth/presentation/screens/set_password_screen.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/events/presentation/pages/events_page.dart';
 import '../../features/events/presentation/pages/events_list_page.dart';
@@ -46,9 +48,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
-      if (isLoggedIn &&
-          (state.uri.path == '/login' || state.uri.path == '/loading')) {
-        return '/home';
+      if (isLoggedIn) {
+        final user = authState.user;
+        if (user != null) {
+          if (user.needsUsername && state.uri.path != '/set-username') {
+            return '/set-username';
+          }
+          if (!user.needsUsername && !user.hasPassword && state.uri.path != '/set-password') {
+            return '/set-password';
+          }
+        }
+
+        if (state.uri.path == '/login' ||
+            state.uri.path == '/loading' ||
+            (state.uri.path == '/set-username' && user != null && !user.needsUsername) ||
+            (state.uri.path == '/set-password' && user != null && user.hasPassword)) {
+          return '/home';
+        }
       }
 
       return null;
@@ -59,6 +75,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/loading',
         builder: (context, state) => const LoadingScreen(),
+      ),
+      GoRoute(
+        path: '/set-username',
+        builder: (context, state) => const SetUsernameScreen(),
+      ),
+      GoRoute(
+        path: '/set-password',
+        builder: (context, state) => const SetPasswordScreen(),
       ),
       GoRoute(
         path: '/events-list',

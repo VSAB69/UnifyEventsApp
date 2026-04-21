@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
+import '../../../../core/sync/sync_service.dart';
 import 'scan_controller.dart';
 
 class ScanScreen extends ConsumerStatefulWidget {
@@ -16,14 +17,10 @@ class ScanScreen extends ConsumerStatefulWidget {
   ConsumerState<ScanScreen> createState() => _ScanScreenState();
 }
 
-class _ScanScreenState extends ConsumerState<ScanScreen>
-    with TickerProviderStateMixin {
+class _ScanScreenState extends ConsumerState<ScanScreen> with TickerProviderStateMixin {
   late MobileScannerController cameraController;
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-
-  bool isProcessing = false;
   bool isPreviewOpen = false;
+  bool isScanningLocked = false;
   String? lastScannedToken;
 
   @override
@@ -33,323 +30,161 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
       detectionSpeed: DetectionSpeed.noDuplicates,
       facing: CameraFacing.back,
     );
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.1).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.fastOutSlowIn,
-      ),
-    );
-
-    // Reset animation on add listener
-    _animationController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _animationController.reverse();
-      }
-    });
   }
 
   @override
   void dispose() {
     cameraController.dispose();
-    _animationController.dispose();
     super.dispose();
   }
 
   void _handleDetect(BarcodeCapture capture) async {
-    final scanState = ref.read(scanControllerProvider);
-    if (scanState.isProcessing || isPreviewOpen) return;
-
+    if (isScanningLocked || isPreviewOpen) return;
     if (capture.barcodes.isEmpty) return;
 
     final barcode = capture.barcodes.first;
     final String? raw = barcode.rawValue;
-
     if (raw == null || raw.isEmpty) return;
 
     String? token;
     try {
       final parsed = jsonDecode(raw);
-      if (parsed is Map) {
-        // Support JSON with "token" or "qr_token"
-        token = (parsed["token"] ?? parsed["qr_token"])?.toString();
-      } else {
-        // Fallback to raw string if Map but keys missing
-        token = raw;
+      if (parsed is Map && parsed["type"] == "event_checkin") {
+        token = parsed["token"]?.toString();
       }
     } catch (_) {
-      // Not JSON, treat as raw token
-      token = raw;
+      token = raw; 
     }
 
     if (token == null || token.trim().isEmpty) {
-      showInvalidQRModal();
+      _triggerInvalid();
       return;
     }
 
-    if (token == lastScannedToken) return;
-
     setState(() {
+      isScanningLocked = true;
       lastScannedToken = token;
-      isProcessing = true;
     });
-
-    // STOP SCANNER IMMEDIATELY
     cameraController.stop();
 
     try {
-      final preview = await ref
-          .read(scanControllerProvider.notifier)
-          .fetchPreview(token!);
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final hasConnection = !connectivityResult.contains(ConnectivityResult.none);
+
+      if (!hasConnection) {
+        ref.read(syncServiceProvider).addPendingCheckin(token);
+        showOfflineQueueModal();
+        return;
+      }
+
+      final preview = await ref.read(scanControllerProvider.notifier).fetchPreview(token);
 
       if (!mounted) return;
 
       if (preview != null) {
-        // 🔴 HANDLE ALREADY CHECKED-IN
-        if (preview["already_checked_in"] == true) {
-          setState(() => isPreviewOpen = true);
+        final status = preview["status"];
+        
+        if (status == "already_checked_in") {
           showAlreadyCheckedInModal(preview);
+        } else if (status == "valid") {
+          showPreviewModal(preview, token);
+        } else if (status == "forbidden") {
+          showAccessDeniedModal();
         } else {
-          setState(() => isPreviewOpen = true);
-          showPreviewModal(preview);
+          _resetWithDelay();
         }
-      } else {
-        // If preview is null, reset and let them try again (per requirement 5)
-        resetScanner();
       }
-    } on DioError catch (e) {
+    } on DioException catch (e) {
       if (!mounted) return;
-
-      final status = e.response?.statusCode;
-
-      // ✅ ONLY show invalid modal for 404
-      if (status == 404) {
+      final data = e.response?.data;
+      if (e.response?.statusCode == 404 || (data is Map && data["status"] == "invalid")) {
         showInvalidQRModal();
-      } else if (status == 400) {
-        // Handle "Already checked-in"
-        final data = e.response?.data;
-        if (data != null && data.toString().contains('Already checked-in')) {
-          setState(() => isPreviewOpen = true);
-          showAlreadyCheckedInModal(data);
-        } else {
-          resetScanner();
-        }
       } else {
-        // Other errors → silent reset
-        resetScanner();
+        _resetWithDelay();
       }
-    } catch (e) {
-      if (!mounted) return;
-      // Generic error → silent reset
-      resetScanner();
     }
   }
 
-  void showInvalidQRModal() {
+  void _triggerInvalid() {
     cameraController.stop();
-    setState(() {
-      isPreviewOpen = true;
-    });
+    showInvalidQRModal();
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      backgroundColor: Colors.black,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, color: Colors.red, size: 64),
-              const SizedBox(height: 16),
-              const Text(
-                "Invalid QR",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "This QR code is not valid.",
-                style: TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  resetScanner();
-                },
-                child: const Text(
-                  "Scan Again",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  void _resetWithDelay() {
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) resetScanner();
+    });
+  }
+
+  // --- UI MODALS ---
+
+  void showInvalidQRModal() {
+    _showStatusModal(
+      icon: Icons.qr_code_scanner_rounded,
+      iconColor: Colors.redAccent,
+      title: "Invalid QR",
+      subtitle: "This ticket is not recognized or may have been tampered with.",
     );
   }
 
-  void showPreviewModal(Map<String, dynamic> data) {
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      backgroundColor: Colors.black,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "Preview Check-in",
-                style: TextStyle(color: Colors.grey[400], fontSize: 14),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                data["participant_name"]?.toString() ?? "Unknown",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                data["event_name"]?.toString() ?? "",
-                style: const TextStyle(color: Colors.white70),
-                textAlign: TextAlign.center,
-              ),
-              Text(
-                data["slot"]?.toString() ?? "",
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF7C3AED),
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () async {
-                  await confirmCheckIn(
-                    data["qr_token"]?.toString() ??
-                        data["token"]?.toString() ??
-                        "",
-                  );
-                },
-                child: const Text(
-                  "Confirm Check-in",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  resetScanner();
-                },
-                child: const Text(
-                  "Cancel",
-                  style: TextStyle(color: Colors.white70),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
+  void showAccessDeniedModal() {
+    _showStatusModal(
+      icon: Icons.lock_person_rounded,
+      iconColor: Colors.orange,
+      title: "Access Denied",
+      subtitle: "You are not an assigned organiser for this specific event.",
     );
   }
 
   void showAlreadyCheckedInModal(Map data) {
+    _showStatusModal(
+      icon: Icons.person_pin_circle_rounded,
+      iconColor: Colors.blueAccent,
+      title: "Already Checked In",
+      subtitle: "${data["participant_name"]}\n${data["event_name"]}",
+      timing: data["slot"],
+    );
+  }
+
+  void showPreviewModal(Map<String, dynamic> data, String token) {
+    setState(() => isPreviewOpen = true);
     showModalBottomSheet(
       context: context,
       isDismissible: false,
-      backgroundColor: Colors.black,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: const Color(0xFF0F0F0F),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
       builder: (_) => Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.info_outline, color: Colors.orange, size: 64),
+            // ✅ Fixed: Changed FontWeight.black to FontWeight.w900
+            const Text("PREVIEW CHECK-IN", style: TextStyle(color: Colors.white30, fontWeight: FontWeight.w900, letterSpacing: 2, fontSize: 10)),
             const SizedBox(height: 16),
-            const Text(
-              "Already Checked In",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
-              ),
+            Text(data["participant_name"] ?? "Guest", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 24, color: Colors.white)),
+            Text(data["event_name"] ?? "Event", style: const TextStyle(color: Color(0xFFF72585), fontWeight: FontWeight.bold)),
+            const Divider(height: 32, color: Colors.white10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.calendar_month, color: Colors.white54, size: 16),
+                const SizedBox(width: 8),
+                Text(data["slot"] ?? "TBA", style: const TextStyle(color: Colors.white70, fontSize: 13)),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              data["participant_name"]?.toString() ?? "",
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              data["event_name"]?.toString() ?? "",
-              style: const TextStyle(color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              data["slot"]?.toString() ?? "",
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF7C3AED),
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                minimumSize: const Size.fromHeight(55),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               ),
-              onPressed: () {
-                Navigator.pop(context);
-                resetScanner();
-              },
-              child: const Text(
-                "Scan Next",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              onPressed: () => confirmCheckIn(token),
+              child: const Text("CONFIRM ENTRY", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+            TextButton(
+              onPressed: () { Navigator.pop(context); resetScanner(); },
+              child: const Text("Cancel", style: TextStyle(color: Colors.white38)),
             ),
           ],
         ),
@@ -357,284 +192,154 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
     );
   }
 
+  void _showStatusModal({required IconData icon, required Color iconColor, required String title, required String subtitle, String? timing}) {
+    setState(() => isPreviewOpen = true);
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      backgroundColor: const Color(0xFF0F0F0F),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
+      builder: (_) => _BaseModal(
+        icon: icon,
+        iconColor: iconColor,
+        title: title,
+        subtitle: subtitle,
+        timing: timing,
+        buttonText: "CONTINUE SCANNING",
+        onPressed: () {
+          Navigator.pop(context);
+          resetScanner();
+        },
+      ),
+    );
+  }
+
+  void showOfflineQueueModal() {
+    _showStatusModal(icon: Icons.cloud_off, iconColor: Colors.grey, title: "Offline Mode", subtitle: "Check-in saved locally. Syncing later.");
+  }
+
   Future<void> confirmCheckIn(String token) async {
     try {
-      final res = await ref
-          .read(scanControllerProvider.notifier)
-          .checkIn(token);
-
-      Navigator.pop(context); // Close preview
-      showSuccessModal(res["participant_name"]?.toString() ?? "Participant");
-    } on DioError catch (e) {
+      final res = await ref.read(scanControllerProvider.notifier).checkIn(token);
       Navigator.pop(context);
-      if (e.response?.statusCode == 404) {
-        showInvalidQRModal();
-      } else {
-        resetScanner();
-      }
+      showSuccessModal(res);
     } catch (e) {
       Navigator.pop(context);
       resetScanner();
     }
   }
 
-  void showSuccessModal(String participantName) {
-    HapticFeedback.mediumImpact();
-    
-    showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      backgroundColor: Colors.black,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle_outline, color: Colors.green, size: 64),
-            const SizedBox(height: 16),
-            const Text(
-              "Check-in Successful",
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 22,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              participantName,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                minimumSize: const Size.fromHeight(50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pop(context);
-                resetScanner();
-              },
-              child: const Text(
-                "Scan Next",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+  void showSuccessModal(Map data) {
+    _showStatusModal(
+      icon: Icons.check_circle_rounded,
+      iconColor: Colors.greenAccent,
+      title: "Access Granted",
+      subtitle: data["participant_name"] ?? "Participant",
+      timing: "Verified at ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}",
     );
   }
 
   void resetScanner() {
+    if (!mounted) return;
     setState(() {
       isPreviewOpen = false;
-      isProcessing = false;
+      isScanningLocked = false;
       lastScannedToken = null;
     });
     ref.read(scanControllerProvider.notifier).reset();
     cameraController.start();
   }
 
-  void closePreview() {
-    Navigator.pop(context);
-    resetScanner();
-  }
-
-  void showSuccess(String participantName) {
-    HapticFeedback.mediumImpact();
-    ref.read(scanControllerProvider.notifier).markSuccess(participantName);
-  }
-
-  void showError(String msg) {
-    HapticFeedback.lightImpact();
-    showInvalidQRModal();
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(scanControllerProvider);
-
-    ref.listen<ScanState>(scanControllerProvider, (previous, next) {
-      if (next.isSuccess || next.errorMessage != null) {
-        _animationController.forward();
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) ref.read(scanControllerProvider.notifier).reset();
-        });
-      }
-    });
-
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        if (didPop) return;
-
-        context.go('/home');
-      },
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        appBar: AppBar(
-          title: const Text(
-            '',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          MobileScanner(controller: cameraController, onDetect: _handleDetect),
+          
+          Positioned(
+            top: 60,
+            left: 0,
+            right: 0,
+            child: Column(
+              children: [
+                const Text(
+                  "ENTRY SCANNER",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 4),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)),
+                  child: const Text(
+                    "Scan to check in participants",
+                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
           ),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          iconTheme: const IconThemeData(color: Colors.white),
-        ),
-        extendBodyBehindAppBar: true,
-        body: Stack(
-          children: [
-            MobileScanner(
-              controller: cameraController,
-              onDetect: _handleDetect,
+
+          Center(
+            child: CustomPaint(
+              painter: QRScannerBorderPainter(
+                color: state.isSuccess ? Colors.greenAccent : const Color(0xFFF72585),
+              ),
+              child: const SizedBox(width: 260, height: 260),
             ),
+          ),
 
-            // Custom Overlay
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CustomPaint(
-                    painter: QRScannerBorderPainter(
-                      color: state.isSuccess
-                          ? Colors.green
-                          : state.errorMessage != null
-                          ? Colors.red
-                          : const Color(0xFFFF1C7C),
-                    ),
-                    child: const SizedBox(width: 250, height: 250),
-                  ),
-                  const SizedBox(height: 32),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Text(
-                      "Scan the QR ticket to mark attendance of participant",
-                      style: GoogleFonts.manrope(
-                        color: Colors.white70,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
+          if (state.isProcessing)
+            Container(color: Colors.black45, child: const Center(child: CircularProgressIndicator(color: Color(0xFF7C3AED)))),
+        ],
+      ),
+    );
+  }
+}
+
+class _BaseModal extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title, subtitle, buttonText;
+  final String? timing;
+  final VoidCallback onPressed;
+  
+  const _BaseModal({required this.icon, required this.iconColor, required this.title, required this.subtitle, this.timing, required this.buttonText, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: iconColor, size: 70),
+          const SizedBox(height: 20),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22, color: Colors.white, letterSpacing: -0.5)),
+          const SizedBox(height: 10),
+          Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white60, fontSize: 15)),
+          if (timing != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
+              child: Text(timing!, style: const TextStyle(color: Color(0xFF4CC9F0), fontWeight: FontWeight.bold, fontSize: 13)),
             ),
-
-            // New CTA
-            Positioned(
-              bottom: 90,
-              left: 16,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFF4C1D95)],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(color: Colors.purpleAccent, blurRadius: 12),
-                  ],
-                ),
-                child: const Center(
-                  child: Text(
-                    "Scan to Check-in Participants",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Result Overlay
-            if (state.isSuccess || state.errorMessage != null)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black54,
-                  child: Center(
-                    child: ScaleTransition(
-                      scale: _scaleAnimation,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: state.isSuccess
-                              ? Colors.green.withOpacity(0.9)
-                              : Colors.red.withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              state.isSuccess
-                                  ? Icons.check_circle
-                                  : Icons.error,
-                              color: Colors.white,
-                              size: 64,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              state.isSuccess
-                                  ? "Checked In Successfully"
-                                  : state.errorMessage ?? "Error",
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            if (state.isSuccess &&
-                                state.participantName != null) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                state.participantName!,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-            // Processing overlay
-            if (state.isProcessing &&
-                !state.isSuccess &&
-                state.errorMessage == null)
-              Container(
-                color: Colors.black54,
-                child: const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF7C3AED)),
-                ),
-              ),
           ],
-        ),
+          const SizedBox(height: 32),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A1A1A),
+              minimumSize: const Size.fromHeight(55),
+              side: const BorderSide(color: Colors.white10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            ),
+            onPressed: onPressed,
+            child: Text(buttonText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
@@ -642,59 +347,30 @@ class _ScanScreenState extends ConsumerState<ScanScreen>
 
 class QRScannerBorderPainter extends CustomPainter {
   final Color color;
-
   QRScannerBorderPainter({required this.color});
-
+  
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 6.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    final paint = Paint()..color = color..strokeWidth = 6..style = PaintingStyle.stroke..strokeCap = StrokeCap.round;
+    const double len = 40;
+    const double rad = 20;
 
-    const double cornerLength = 40.0;
-    const double radius = 24.0;
-
-    // Top-Left
-    var path = Path()
-      ..moveTo(0, cornerLength)
-      ..lineTo(0, radius)
-      ..quadraticBezierTo(0, 0, radius, 0)
-      ..lineTo(cornerLength, 0);
+    var path = Path()..moveTo(0, len)..lineTo(0, rad)..quadraticBezierTo(0, 0, rad, 0)..lineTo(len, 0);
     canvas.drawPath(path, paint);
-
-    // Top-Right
-    path = Path()
-      ..moveTo(size.width - cornerLength, 0)
-      ..lineTo(size.width - radius, 0)
-      ..quadraticBezierTo(size.width, 0, size.width, radius)
-      ..lineTo(size.width, cornerLength);
+    path = Path()..moveTo(size.width - len, 0)..lineTo(size.width - rad, 0)..quadraticBezierTo(size.width, 0, size.width, rad)..lineTo(size.width, len);
     canvas.drawPath(path, paint);
-
-    // Bottom-Left
-    path = Path()
-      ..moveTo(0, size.height - cornerLength)
-      ..lineTo(0, size.height - radius)
-      ..quadraticBezierTo(0, size.height, radius, size.height)
-      ..lineTo(cornerLength, size.height);
+    path = Path()..moveTo(0, size.height - len)..lineTo(0, size.height - rad)..quadraticBezierTo(0, size.height, rad, size.height)..lineTo(len, size.height);
     canvas.drawPath(path, paint);
-
-    // Bottom-Right
-    path = Path()
-      ..moveTo(size.width - cornerLength, size.height)
-      ..lineTo(size.width - radius, size.height)
-      ..quadraticBezierTo(
-        size.width,
-        size.height,
-        size.width,
-        size.height - radius,
-      )
-      ..lineTo(size.width, size.height - cornerLength);
+    path = Path()..moveTo(size.width - len, size.height)..lineTo(size.width - rad, size.height)..quadraticBezierTo(size.width, size.height, size.width, size.height - rad)..lineTo(size.width, size.height - len);
     canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(covariant QRScannerBorderPainter oldDelegate) =>
-      oldDelegate.color != color;
+  // ✅ Fixed: Cast oldDelegate to QRScannerBorderPainter
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    if (oldDelegate is QRScannerBorderPainter) {
+      return oldDelegate.color != color;
+    }
+    return true;
+  }
 }

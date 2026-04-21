@@ -18,6 +18,27 @@ class BookingsPage extends ConsumerWidget {
           'My Bookings',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          bookingsAsync.maybeWhen(
+            data: (bookings) => (bookings.isNotEmpty && bookings.first['is_offline'] == true)
+                ? Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orangeAccent.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orangeAccent),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'OFFLINE MODE',
+                      style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  )
+                : const SizedBox(),
+            orElse: () => const SizedBox(),
+          )
+        ],
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading:

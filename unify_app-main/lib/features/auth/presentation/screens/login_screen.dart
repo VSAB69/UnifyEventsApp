@@ -275,6 +275,101 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               );
                             },
                           ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.transparent,
+                                        const Color(0xFF00E5FF).withOpacity(0.3),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  "OR",
+                                  style: GoogleFonts.spaceMono(
+                                    color: Colors.white38,
+                                    fontSize: 12,
+                                    letterSpacing: 2,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        const Color(0xFF00E5FF).withOpacity(0.3),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.1),
+                                width: 1.5,
+                              ),
+                              color: Colors.white.withOpacity(0.03),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: authState.isLoading
+                                    ? null
+                                    : () {
+                                        ref.read(authProvider.notifier).googleLogin();
+                                      },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Image.network(
+                                        'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1024px-Google_%22G%22_logo.svg.png',
+                                        height: 20,
+                                        // Using a fallback or simpler method if SVG is an issue, 
+                                        // but typical Flutter apps handle this or use an icon.
+                                        // For now, I'll use a FontAwesome-like icon if available or just a placeholder if needed.
+                                        // Actually, I'll use a simple Icon for reliability if I can't guarantee SVG support.
+                                        errorBuilder: (context, error, stackTrace) => const Icon(
+                                          Icons.g_mobiledata,
+                                          color: Colors.white,
+                                          size: 28,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Text(
+                                        "CONTINUE_WITH_GOOGLE",
+                                        style: GoogleFonts.spaceMono(
+                                          color: Colors.white,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          letterSpacing: 1.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

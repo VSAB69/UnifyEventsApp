@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "400488433923",
+    "project_id": "unifyevents-49112",
+    "storage_bucket": "unifyevents-49112.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:400488433923:android:7a76305b72d8525bcec136",
+        "android_client_info": {
+          "package_name": "com.example.unify_events"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "400488433923-6kdokbe8jn9viset3vu7n9e2gpnlbsu8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.unify_events",
+            "certificate_hash": "e37c20c57cc1443c24badb72fdf025799825ae4d"
+          }
+        },
+        {
+          "client_id": "400488433923-92fe2bnvmiq884s1sh0toguie4id46l6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA09XWfwIilplWGikCkz5khveOVUzVDD8k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "400488433923-92fe2bnvmiq884s1sh0toguie4id46l6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

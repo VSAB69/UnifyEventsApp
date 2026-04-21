@@ -6,7 +6,42 @@ import 'core/router/app_router.dart';
 
 import 'shared/widgets/cyber_grid_background.dart';
 
-void main() {
+import 'dart:convert';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'core/storage/secure_storage_service.dart';
+import 'features/bookings/data/models/cached_ticket.dart';
+import 'features/events/data/models/cached_participant.dart';
+import 'core/sync/models/pending_checkin.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Hive.initFlutter();
+
+  // Handle Encryption Key
+  final secureStorage = SecureStorageService();
+  String? keyStr = await secureStorage.getHiveKey();
+  late List<int> encryptionKeyAsUint8List;
+  if (keyStr == null) {
+    final key = Hive.generateSecureKey();
+    await secureStorage.saveHiveKey(base64UrlEncode(key));
+    encryptionKeyAsUint8List = key;
+  } else {
+    encryptionKeyAsUint8List = base64Url.decode(keyStr);
+  }
+
+  final cipher = HiveAesCipher(encryptionKeyAsUint8List);
+
+  // Register Adapters
+  Hive.registerAdapter(CachedTicketAdapter());
+  Hive.registerAdapter(CachedParticipantAdapter());
+  Hive.registerAdapter(PendingCheckinAdapter());
+
+  // Open Boxes
+  await Hive.openBox<CachedTicket>('tickets', encryptionCipher: cipher);
+  await Hive.openBox<CachedParticipant>('participants', encryptionCipher: cipher);
+  await Hive.openBox<PendingCheckin>('checkin_queue', encryptionCipher: cipher);
+
   runApp(const ProviderScope(child: MyApp()));
 }
 

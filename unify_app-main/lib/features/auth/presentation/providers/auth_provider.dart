@@ -1,10 +1,13 @@
+import 'dart:developer' as dev;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:hive/hive.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/storage/secure_storage_service.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
+import '../../data/datasources/google_auth_service.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/models/user_model.dart';
 
@@ -60,15 +63,18 @@ final authRepositoryProvider = Provider((ref) {
   );
 });
 
+final googleAuthServiceProvider = Provider((ref) => GoogleAuthService());
+
 /// NOTIFIER
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepositoryImpl repo;
+  final GoogleAuthService googleAuth;
 
-  AuthNotifier(this.repo) : super(AuthState.initial());
+  AuthNotifier(this.repo, this.googleAuth) : super(AuthState.initial());
 
   Future<void> checkAuth() async {
     try {
-      final user = await repo.isLoggedIn().timeout(const Duration(seconds: 12));
+      final user = await repo.getCurrentUser().timeout(const Duration(seconds: 12));
 
       state = state.copyWith(
         isLoading: false,
@@ -108,13 +114,94 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<void> googleLogin() async {
+    state = state.copyWith(isLoading: true, clearError: true);
+
+    try {
+      dev.log("🔵 UI: Initiating Google Sign-In");
+      final idToken = await googleAuth.signIn();
+
+      if (idToken == null) {
+        dev.log("🟡 UI: Google Sign-In cancelled by user");
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+
+      dev.log("🔵 UI: ID Token received, calling repository");
+      final user = await repo.googleLogin(idToken);
+
+      dev.log("🟢 UI: Google Login successful for ${user.email}");
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: true,
+        user: user,
+      );
+    } on AppException catch (e) {
+      dev.log("🔴 UI: Google Login Repository Error: ${e.message}");
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: false,
+        error: e.message,
+      );
+    } catch (e) {
+      dev.log("🔴 UI: Unexpected Google Login Error: $e");
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: false,
+        error: "Google Sign-In failed",
+      );
+    }
+  }
+
+  Future<void> setUsername(String username) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await repo.setUsername(username);
+      final updatedUser = await repo.getCurrentUser(); // Refresh user data
+      state = state.copyWith(
+        isLoading: false,
+        user: updatedUser,
+      );
+    } on AppException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+    } catch (_) {
+      state = state.copyWith(isLoading: false, error: "Failed to set username");
+    }
+  }
+
+  Future<void> setPassword(String password) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await repo.setPassword(password);
+      final updatedUser = await repo.getCurrentUser(); // Refresh user data
+      state = state.copyWith(
+        isLoading: false,
+        user: updatedUser,
+      );
+    } on AppException catch (e) {
+      state = state.copyWith(isLoading: false, error: e.message);
+    } catch (_) {
+      state = state.copyWith(isLoading: false, error: "Failed to set password");
+    }
+  }
+
+
   Future<void> logout() async {
     await repo.logout();
+
+    try {
+      if (Hive.isBoxOpen('tickets')) await Hive.box('tickets').clear();
+      if (Hive.isBoxOpen('participants')) await Hive.box('participants').clear();
+      if (Hive.isBoxOpen('checkin_queue')) await Hive.box('checkin_queue').clear();
+    } catch (_) {}
 
     state = AuthState(isLoading: false, isAuthenticated: false);
   }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.read(authRepositoryProvider));
+  return AuthNotifier(
+    ref.read(authRepositoryProvider),
+    ref.read(googleAuthServiceProvider),
+  );
 });
